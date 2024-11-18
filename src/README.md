@@ -2,7 +2,7 @@
 
 This application shows accessibility information for various locations in New York City.
 
-## Setup
+## Setup 
 
 1. Copy `.env.local.example` to `.env.local`:
 ```bash
