@@ -1,25 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
-import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
 import SideMenu from '@/components/SideMenu';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
-// Dynamically import the Map component with no SSR
-const MapComponent = dynamic(
-  () => import('@/components/map'),
-  {
-    ssr: false,
-    loading: () => (
-      <Box sx={{ height: '100vh', width: '100vw', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        Loading map...
-      </Box>
-    ),
-  }
-);
-
-export default function Home() {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -39,13 +29,23 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
+    <Box sx={{ display: 'flex' }}>
       <SideMenu 
         user={user}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
       />
-      <MapComponent />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minHeight: '100vh',
+          ml: { xs: 0, sm: 8 },
+          pt: { xs: 8, sm: 2 },
+        }}
+      >
+        {children}
+      </Box>
     </Box>
   );
 }

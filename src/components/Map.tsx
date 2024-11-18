@@ -1,133 +1,138 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl';
-import { MapPin, AlertCircle, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import AddLocationDialog from './AddLocationDialog';
-import useSWR from 'swr';
+import { Box, Paper, Typography } from '@mui/material';
+import { easeCubic } from 'd3-ease';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import SearchBar from './SearchBar';
+import Legend from './Legend';
+import FilterPanel from './FilterPanel';
+import AddLocationButton from './AddLocationButton';
+import { LocationData } from '@/types';
+import { supabase } from '@/lib/supabase';
 
-type Location = {
-  id: string;
-  name: string;
-  address: string;
-  description?: string;
-  accessibility: 'full' | 'partial' | 'none' | 'unknown';
-  images: string[];
-  latitude: number;
-  longitude: number;
-  created_at: string;
-};
+interface MapComponentProps {}
 
-export const accessibilityConfig = {
-  full: {
-    color: 'text-green-500',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-500',
-    label: 'Fully Accessible',
-    description: 'Complete wheelchair access',
-  },
-  partial: {
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-100',
-    borderColor: 'border-yellow-500',
-    label: 'Partially Accessible',
-    description: 'Limited wheelchair access',
-  },
-  none: {
-    color: 'text-red-500',
-    bgColor: 'bg-red-100',
-    borderColor: 'border-red-500',
-    label: 'Not Accessible',
-    description: 'No wheelchair access',
-  },
-  unknown: {
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-100',
-    borderColor: 'border-gray-500',
-    label: 'Unknown',
-    description: 'Accessibility status unknown',
-  },
-};
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-export default function MapComponent() {
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [showAddLocation, setShowAddLocation] = useState(false);
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null);
+const MapComponent: React.FC<MapComponentProps> = () => {
   const [viewState, setViewState] = useState({
-    latitude: 40.7527,
-    longitude: -73.9772,
-    zoom: 13
+    latitude: 40.7128,
+    longitude: -74.0060,
+    zoom: 12,
+    bearing: 0,
+    pitch: 0
   });
+  const [locations, setLocations] = useState<LocationData[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [filters, setFilters] = useState<string[]>([]);
 
-  const { data: locations, error } = useSWR<{ data: Location[] }>('/api/locations', fetcher);
+  useEffect(() => {
+    fetchLocations();
+  }, []);
 
-  if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Mapbox token is not configured. Please add NEXT_PUBLIC_MAPBOX_TOKEN to your environment variables.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const fetchLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .eq('status', 'approved');
 
-  const handleMapClick = (event: any) => {
-    const { lat, lng } = event.lngLat;
-    setClickedLocation({ lat, lng });
-    setShowAddLocation(true);
+      if (error) throw error;
+      setLocations(data || []);
+    } catch (err) {
+      console.error('Error fetching locations:', err);
+    }
   };
 
+  const handleLocationRequest = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setViewState({
+            ...viewState,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            zoom: 14,
+            transitionDuration: 1000,
+            transitionEasing: easeCubic
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+  };
+
+  const handleFilterChange = (newFilters: string[]) => {
+    setFilters(newFilters);
+  };
+
+  const filteredLocations = locations.filter(location => {
+    if (filters.length === 0) return true;
+    return filters.every(filter => {
+      switch (filter) {
+        case 'high':
+          return location.accessibility_level === 'high';
+        case 'medium':
+          return location.accessibility_level === 'medium';
+        case 'low':
+          return location.accessibility_level === 'low';
+        case 'no-steps':
+          return !location.has_steps;
+        case 'restroom':
+          return location.has_restroom && location.is_restroom_accessible;
+        case 'service-animal':
+          return location.is_dog_friendly;
+        default:
+          return true;
+      }
+    });
+  });
+
   return (
-    <>
-      {mapError && (
-        <Alert variant="destructive" className="absolute left-4 right-4 top-20 z-50">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{mapError}</AlertDescription>
-        </Alert>
-      )}
+    <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
+      <SearchBar 
+        onSearch={() => {}} 
+        onLocationRequest={handleLocationRequest}
+      />
+      <Legend />
+      <FilterPanel onFilterChange={handleFilterChange} />
+      <AddLocationButton />
+      
       <Map
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
-        onClick={handleMapClick}
-        style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle="mapbox://styles/mapbox/streets-v11"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-        onError={(e) => setMapError('Failed to load map. Please try again later.')}
       >
-        {locations?.data?.map((location) => (
+        {filteredLocations.map((location) => (
           <Marker
             key={location.id}
             latitude={location.latitude}
             longitude={location.longitude}
-            anchor="bottom"
             onClick={e => {
               e.originalEvent.stopPropagation();
               setSelectedLocation(location);
             }}
           >
-            <div className={cn(
-              'group relative cursor-pointer transition-all hover:scale-110',
-              accessibilityConfig[location.accessibility].bgColor,
-              accessibilityConfig[location.accessibility].borderColor,
-              'rounded-full p-1 border-2'
-            )}>
-              <MapPin className={cn(
-                'h-6 w-6',
-                accessibilityConfig[location.accessibility].color
-              )} />
-              <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 transform whitespace-nowrap rounded bg-black px-2 py-1 text-xs text-white group-hover:block">
-                {location.name} - {accessibilityConfig[location.accessibility].label}
-              </div>
-            </div>
+            <Box
+              sx={{
+                width: 20,
+                height: 20,
+                bgcolor: location.accessibility_level === 'high' ? 'success.main' :
+                         location.accessibility_level === 'medium' ? 'warning.main' :
+                         'error.main',
+                borderRadius: '50%',
+                border: '2px solid white',
+                boxShadow: 2,
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'scale(1.2)',
+                },
+              }}
+            />
           </Marker>
         ))}
 
@@ -135,47 +140,24 @@ export default function MapComponent() {
           <Popup
             latitude={selectedLocation.latitude}
             longitude={selectedLocation.longitude}
-            anchor="bottom"
             onClose={() => setSelectedLocation(null)}
-            className="z-50 max-w-sm"
+            closeButton={true}
+            closeOnClick={false}
+            anchor="bottom"
           >
-            <div className="p-2">
-              <h3 className="font-semibold">{selectedLocation.name}</h3>
-              <p className="text-sm text-muted-foreground">{selectedLocation.address}</p>
-              <Badge className={cn(
-                'mt-1',
-                accessibilityConfig[selectedLocation.accessibility].bgColor,
-                accessibilityConfig[selectedLocation.accessibility].color,
-                'border',
-                accessibilityConfig[selectedLocation.accessibility].borderColor
-              )}>
-                {accessibilityConfig[selectedLocation.accessibility].label}
-              </Badge>
-              <p className="mt-2 text-sm">
-                {selectedLocation.description || accessibilityConfig[selectedLocation.accessibility].description}
-              </p>
-              {selectedLocation.images?.length > 0 && (
-                <div className="mt-2 grid grid-cols-2 gap-1">
-                  {selectedLocation.images.map((url, index) => (
-                    <img
-                      key={index}
-                      src={url}
-                      alt={`${selectedLocation.name} - Image ${index + 1}`}
-                      className="h-20 w-full rounded object-cover"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <Paper sx={{ p: 2, maxWidth: 300 }}>
+              <Typography variant="h6" gutterBottom>
+                {selectedLocation.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedLocation.description}
+              </Typography>
+            </Paper>
           </Popup>
         )}
       </Map>
-
-      <AddLocationDialog
-        open={showAddLocation}
-        onOpenChange={setShowAddLocation}
-        currentLocation={clickedLocation || undefined}
-      />
-    </>
+    </Box>
   );
-}
+};
+
+export default MapComponent;
