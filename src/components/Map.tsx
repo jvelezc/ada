@@ -19,7 +19,7 @@ export default function MapComponent({}: MapComponentProps) {
     latitude: 40.7128,
     longitude: -74.0060,
     zoom: 12
-  });
+  }); 
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [filters, setFilters] = useState<string[]>([]);

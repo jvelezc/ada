@@ -8,7 +8,7 @@ import SideMenu from '@/components/SideMenu';
 
 // Dynamically import the Map component with no SSR
 const MapComponent = dynamic(
-  () => import('@/components/map').then(mod => mod.default),
+  () => import('@/components/Map').then(mod => mod.default),
   {
     ssr: false,
     loading: () => (
