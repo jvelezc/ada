@@ -23,7 +23,13 @@ interface AccessibilityLevelStepProps {
   initialData?: Partial<LocationFormData>;
 }
 
-const accessibilityExamples = [
+// Explicitly typing the accessibilityExamples array
+const accessibilityExamples: {
+  level: 'high' | 'medium' | 'low' | 'unknown';
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
   {
     level: 'high',
     title: 'Fully Accessible',
@@ -46,16 +52,18 @@ const accessibilityExamples = [
 
 export default function AccessibilityLevelStep({ onNext, onBack, initialData }: AccessibilityLevelStepProps) {
   const [accessibilityLevel, setAccessibilityLevel] = useState<'high' | 'medium' | 'low' | 'unknown'>(
-    initialData?.accessibility_status_unknown ? 'unknown' :
-    initialData?.accessibility_level || 'unknown'
+    initialData?.accessibility_status_unknown
+      ? 'unknown'
+      : initialData?.accessibility_level || 'unknown'
   );
   const [description, setDescription] = useState(initialData?.description || '');
 
   useEffect(() => {
     if (initialData) {
       setAccessibilityLevel(
-        initialData.accessibility_status_unknown ? 'unknown' :
-        initialData.accessibility_level || 'unknown'
+        initialData.accessibility_status_unknown
+          ? 'unknown'
+          : initialData.accessibility_level || 'unknown'
       );
       setDescription(initialData.description || '');
     }
@@ -81,25 +89,28 @@ export default function AccessibilityLevelStep({ onNext, onBack, initialData }: 
             Select the overall accessibility level
           </Typography>
 
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-            gap: 2,
-            mb: 3,
-          }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+              gap: 2,
+              mb: 3,
+            }}
+          >
             {accessibilityExamples.map((example) => (
               <Paper
                 key={example.level}
-                onClick={() => setAccessibilityLevel(example.level)}
+                onClick={() => setAccessibilityLevel(example.level)} // No type error now
                 sx={{
                   p: 3,
                   cursor: 'pointer',
                   textAlign: 'center',
-                  border: theme => `3px solid ${
-                    accessibilityLevel === example.level
-                      ? theme.palette.primary.main
-                      : 'transparent'
-                  }`,
+                  border: (theme) =>
+                    `3px solid ${
+                      accessibilityLevel === example.level
+                        ? theme.palette.primary.main
+                        : 'transparent'
+                    }`,
                   borderRadius: 2,
                   transition: 'all 0.2s',
                   '&:hover': {
@@ -139,11 +150,7 @@ export default function AccessibilityLevelStep({ onNext, onBack, initialData }: 
                 control={<Radio />}
                 label="Limited accessibility (significant barriers)"
               />
-              <FormControlLabel
-                value="unknown"
-                control={<Radio />}
-                label="I don't know"
-              />
+              <FormControlLabel value="unknown" control={<Radio />} label="I don't know" />
             </RadioGroup>
           </FormControl>
         </Box>
