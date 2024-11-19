@@ -38,7 +38,7 @@ export default function PhotosStep({ onNext, onBack, initialData }: PhotosStepPr
     setUploading(true);
 
     try {
-      const newUrls = [];
+      const newUrls: string[] = [];
       for (const file of acceptedFiles) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;

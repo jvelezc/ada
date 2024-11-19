@@ -1,58 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Paper, Box, Typography, IconButton, Collapse, Fade } from '@mui/material';
+import { Paper, Box, Typography, IconButton, Collapse } from '@mui/material';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
-const LEGEND_PIN_KEY = 'accessibility-legend-pinned';
-const LEGEND_VISIBLE_KEY = 'accessibility-legend-visible';
-const AUTO_HIDE_DELAY = 7000; // 7 seconds in milliseconds
-
 export default function Legend() {
-  const [isPinned, setIsPinned] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(LEGEND_PIN_KEY) === 'true';
-    }
-    return false;
-  });
-  
-  const [isVisible, setIsVisible] = useState(true); // Always start visible
+  const [isPinned, setIsPinned] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
   const levels = [
-    { level: 'High', color: '#4CAF50', description: 'Fully accessible, no barriers' },
-    { level: 'Medium', color: '#FFC107', description: 'Partially accessible, some barriers' },
-    { level: 'Low', color: '#F44336', description: 'Limited accessibility, significant barriers' },
+    { level: 'High', color: '#4CAF50' },
+    { level: 'Medium', color: '#FFC107' },
+    { level: 'Low', color: '#F44336' },
   ];
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     
-    if (!isPinned && !isHovered && isVisible) {
+    if (!isPinned && !isHovered) {
       timeout = setTimeout(() => {
         setIsVisible(false);
-        localStorage.setItem(LEGEND_VISIBLE_KEY, 'false');
-      }, AUTO_HIDE_DELAY);
+      }, 7000); // Increased to 7 seconds
     }
 
     return () => {
       if (timeout) clearTimeout(timeout);
     };
-  }, [isPinned, isHovered, isVisible]);
-
-  useEffect(() => {
-    localStorage.setItem(LEGEND_PIN_KEY, isPinned.toString());
-  }, [isPinned]);
+  }, [isPinned, isHovered]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (!isPinned) {
-      setIsVisible(true);
-      localStorage.setItem(LEGEND_VISIBLE_KEY, 'true');
-    }
+    setIsVisible(true);
   };
 
   const handleMouseLeave = () => {
@@ -60,17 +42,8 @@ export default function Legend() {
   };
 
   const togglePin = () => {
-    const newPinned = !isPinned;
-    setIsPinned(newPinned);
+    setIsPinned(!isPinned);
     setIsVisible(true);
-    localStorage.setItem(LEGEND_PIN_KEY, newPinned.toString());
-    localStorage.setItem(LEGEND_VISIBLE_KEY, 'true');
-  };
-
-  const toggleVisibility = () => {
-    const newVisible = !isVisible;
-    setIsVisible(newVisible);
-    localStorage.setItem(LEGEND_VISIBLE_KEY, newVisible.toString());
   };
 
   return (
@@ -87,29 +60,22 @@ export default function Legend() {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Fade in={!isVisible}>
+      {!isVisible && (
         <IconButton
-          onClick={toggleVisibility}
+          onClick={() => setIsVisible(true)}
           sx={{
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
+            bgcolor: 'background.paper',
             boxShadow: 2,
-            mb: 1,
+            color: 'primary.main',
             '&:hover': { 
-              bgcolor: 'primary.dark',
-              transform: 'scale(1.1)',
-            },
-            transition: 'transform 0.2s',
-            width: 40,
-            height: 40,
-            '& .MuiSvgIcon-root': {
-              fontSize: 28,
+              bgcolor: 'background.paper',
+              color: 'primary.light',
             },
           }}
         >
           <ExpandMoreIcon />
         </IconButton>
-      </Fade>
+      )}
 
       <Collapse in={isVisible}>
         <Paper
@@ -125,7 +91,15 @@ export default function Legend() {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem', fontWeight: 600 }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                flex: 1, 
+                fontSize: '1rem', 
+                fontWeight: 600,
+                color: 'text.primary',
+              }}
+            >
               Accessibility Levels
             </Typography>
             <IconButton
@@ -133,7 +107,7 @@ export default function Legend() {
               onClick={togglePin}
               sx={{ 
                 mr: 0.5,
-                color: isPinned ? 'primary.main' : 'inherit',
+                color: isPinned ? 'primary.main' : 'text.secondary',
                 '&:hover': {
                   color: 'primary.main',
                 },
@@ -143,11 +117,11 @@ export default function Legend() {
             </IconButton>
             <IconButton
               size="small"
-              onClick={toggleVisibility}
+              onClick={() => setIsVisible(false)}
               sx={{
-                color: 'primary.main',
+                color: 'text.secondary',
                 '&:hover': {
-                  color: 'primary.dark',
+                  color: 'primary.main',
                 },
               }}
             >
@@ -155,7 +129,7 @@ export default function Legend() {
             </IconButton>
           </Box>
 
-          {levels.map(({ level, color, description }) => (
+          {levels.map(({ level, color }) => (
             <Box 
               key={level} 
               sx={{ 
@@ -180,18 +154,26 @@ export default function Legend() {
                 }}
               />
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    fontWeight: 600,
+                    color: 'text.primary',
+                  }}
+                >
                   {level}
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  color="text.secondary"
                   sx={{ 
+                    color: 'text.secondary',
                     fontSize: '0.85rem',
                     lineHeight: 1.4,
                   }}
                 >
-                  {description}
+                  {level === 'High' && 'Fully accessible, no barriers'}
+                  {level === 'Medium' && 'Partially accessible, some barriers'}
+                  {level === 'Low' && 'Limited accessibility, significant barriers'}
                 </Typography>
               </Box>
             </Box>

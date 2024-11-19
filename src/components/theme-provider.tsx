@@ -7,34 +7,34 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90CAF9',
-      light: '#BBE2FF',
-      dark: '#5D99C6',
-      contrastText: '#000000',
+      main: '#2196F3', // Higher contrast blue
+      light: '#64B5F6', // Accessible lighter shade
+      dark: '#1976D2', // Accessible darker shade
+      contrastText: '#FFFFFF', // Improved readability
     },
     secondary: {
-      main: '#CE93D8',
-      light: '#F3E5F5',
-      dark: '#AB47BC',
-      contrastText: '#000000',
+      main: '#494c7d', // Higher contrast purple
+      light: '#D05CE3', // Accessible lighter shade
+      dark: '#7B1FA2', // Accessible darker shade
+      contrastText: '#FFFFFF', // Improved readability
     },
     error: {
-      main: '#EF5350',
-      light: '#FF867C',
-      dark: '#B61827',
+      main: '#E53935',
+      light: '#FF6F60',
+      dark: '#AB000D',
       contrastText: '#FFFFFF',
     },
     success: {
-      main: '#66BB6A',
-      light: '#98EE99',
-      dark: '#338A3E',
-      contrastText: '#000000',
+      main: '#43A047',
+      light: '#76D275',
+      dark: '#00701A',
+      contrastText: '#FFFFFF',
     },
     warning: {
-      main: '#FFA726',
-      light: '#FFD95B',
-      dark: '#C77800',
-      contrastText: '#000000',
+      main: '#FB8C00',
+      light: '#FFB74D',
+      dark: '#C25E00',
+      contrastText: '#FFFFFF',
     },
     background: {
       default: '#121212',
@@ -54,24 +54,24 @@ const theme = createTheme({
           fontWeight: 600,
         },
         contained: {
-          backgroundColor: '#90CAF9',
-          color: '#000000',
+          backgroundColor: '#2196F3',
+          color: '#FFFFFF',
           '&:hover': {
-            backgroundColor: '#5D99C6',
+            backgroundColor: '#1976D2',
           },
         },
         outlined: {
-          borderColor: '#90CAF9',
-          color: '#90CAF9',
+          borderColor: '#2196F3',
+          color: '#2196F3',
           '&:hover': {
-            borderColor: '#5D99C6',
-            backgroundColor: 'rgba(144, 202, 249, 0.08)',
+            borderColor: '#1976D2',
+            backgroundColor: 'rgba(33, 150, 243, 0.08)',
           },
         },
         text: {
-          color: '#90CAF9',
+          color: '#2196F3',
           '&:hover': {
-            backgroundColor: 'rgba(144, 202, 249, 0.08)',
+            backgroundColor: 'rgba(33, 150, 243, 0.08)',
           },
         },
       },
@@ -80,7 +80,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&:hover': {
-            backgroundColor: 'rgba(144, 202, 249, 0.08)',
+            backgroundColor: 'rgba(33, 150, 243, 0.08)',
           },
         },
       },

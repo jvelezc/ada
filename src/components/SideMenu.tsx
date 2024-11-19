@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -10,18 +8,15 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Typography,
   IconButton,
-  Divider,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import MenuIcon from '@mui/icons-material/Menu';
-import MapIcon from '@mui/icons-material/Map';
+import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface SideMenuProps {
   user: any;
@@ -29,28 +24,24 @@ interface SideMenuProps {
   onLogout: () => void;
 }
 
-export default function SideMenu({ user, onLoginSuccess, onLogout }: SideMenuProps) {
+export default function SideMenu({ user }: SideMenuProps) {
   const [open, setOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
 
-  const handleMapView = () => {
-    router.push('/');
-    setOpen(false);
-  };
-
-  const handleAdminPanel = () => {
-    router.push('/admin');
-    setOpen(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    onLogout();
-    setOpen(false);
-    router.push('/');
-  };
+  const menuItems = [
+    { 
+      text: 'Home', 
+      icon: <HomeIcon />, 
+      onClick: () => router.push('/'),
+      show: true 
+    },
+    { 
+      text: 'Admin Panel', 
+      icon: <AdminPanelSettingsIcon />, 
+      onClick: () => router.push('/admin'),
+      show: !!user 
+    },
+  ];
 
   return (
     <>
@@ -64,24 +55,36 @@ export default function SideMenu({ user, onLoginSuccess, onLogout }: SideMenuPro
           top: 16,
           left: 16,
           zIndex: 1200,
+          borderRadius: '50%',
+          background: (theme) => alpha(theme.palette.background.paper, 0.1),
+          backdropFilter: 'blur(8px)',
+          boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.common.black, 0.3)}`,
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            background: (theme) => alpha(theme.palette.background.paper, 0.15),
+            transform: 'scale(1.05)',
+          },
         }}
       >
         <Tooltip title={open ? 'Close menu' : 'Open menu'}>
           <IconButton
             onClick={() => setOpen(!open)}
             sx={{
-              bgcolor: 'background.paper',
-              boxShadow: 2,
+              color: 'common.white',
+              p: 1.5,
               '&:hover': {
-                bgcolor: 'primary.dark',
+                bgcolor: 'transparent',
                 '& .MuiSvgIcon-root': {
-                  color: 'primary.contrastText',
+                  transform: 'scale(1.1)',
                 },
               },
-              transition: 'all 0.2s',
+              '& .MuiSvgIcon-root': {
+                fontSize: 28,
+                transition: 'transform 0.2s ease-in-out',
+              },
             }}
           >
-            <MenuIcon sx={{ color: 'primary.main' }} />
+            <MenuIcon />
           </IconButton>
         </Tooltip>
       </Box>
@@ -90,160 +93,47 @@ export default function SideMenu({ user, onLoginSuccess, onLogout }: SideMenuPro
         anchor="left"
         open={open}
         onClose={() => setOpen(false)}
-        variant="temporary"
         PaperProps={{
           sx: {
-            width: 280,
+            width: 240,
             bgcolor: 'background.paper',
-            borderTopRightRadius: 16,
-            borderBottomRightRadius: 16,
             borderRight: '1px solid',
             borderColor: 'divider',
-            boxShadow: 8,
-            '& .MuiListItem-root': {
-              borderRadius: 1,
-              mx: 1,
-              my: 0.5,
-              transition: 'all 0.2s',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-                '& .MuiListItemIcon-root': {
-                  color: 'primary.contrastText',
-                },
-                '& .MuiTypography-root': {
-                  color: 'primary.contrastText',
-                },
-              },
-              '&.Mui-selected': {
-                bgcolor: 'primary.main',
-                '& .MuiListItemIcon-root': {
-                  color: 'primary.contrastText',
-                },
-                '& .MuiTypography-root': {
-                  color: 'primary.contrastText',
-                },
-                '&:hover': {
-                  bgcolor: 'primary.dark',
-                },
-              },
-            },
-            '& .MuiListItemIcon-root': {
-              minWidth: 40,
-              color: 'text.primary',
-              transition: 'color 0.2s',
-            },
-            '& .MuiDivider-root': {
-              borderColor: 'divider',
-              mx: 2,
-              my: 1,
-            },
-            '& .MuiTypography-root': {
-              transition: 'color 0.2s',
-            },
           },
         }}
       >
-        <List sx={{ pt: 2 }}>
-          {user ? (
-            <>
-              <ListItem>
-                <ListItemText 
-                  primary={
-                    <Typography variant="subtitle1" sx={{ 
-                      fontWeight: 600,
-                      color: 'primary.main',
-                    }}>
-                      {user.email}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      Logged in
-                    </Typography>
-                  }
-                />
-              </ListItem>
-              <Divider />
-              
-              <ListItem 
-                button 
-                onClick={handleMapView}
-                selected={pathname === '/'}
-              >
-                <ListItemIcon>
-                  <MapIcon />
-                </ListItemIcon>
-                <ListItemText primary="Map View" />
-              </ListItem>
-
-              <ListItem 
-                button 
-                onClick={handleAdminPanel}
-                selected={pathname === '/admin'}
-              >
-                <ListItemIcon>
-                  <AdminPanelSettingsIcon />
-                </ListItemIcon>
-                <ListItemText primary="Admin Panel" />
-              </ListItem>
-
-              <Divider />
-              
-              <ListItem 
-                button 
-                onClick={handleLogout}
+        <List sx={{ pt: 8 }}>
+          {menuItems
+            .filter(item => item.show)
+            .map((item) => (
+              <ListItem
+                key={item.text}
+                button
+                onClick={() => {
+                  item.onClick();
+                  setOpen(false);
+                }}
                 sx={{
+                  py: 2,
                   '&:hover': {
-                    bgcolor: 'error.dark',
-                    '& .MuiListItemIcon-root': {
-                      color: 'error.contrastText',
-                    },
-                    '& .MuiTypography-root': {
-                      color: 'error.contrastText',
+                    bgcolor: 'primary.dark',
+                    '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
+                      color: 'primary.contrastText',
                     },
                   },
                 }}
               >
-                <ListItemIcon>
-                  <LogoutIcon color="error" />
+                <ListItemIcon sx={{ color: 'primary.main' }}>
+                  {item.icon}
                 </ListItemIcon>
                 <ListItemText 
-                  primary={
-                    <Typography color="error">
-                      Logout
-                    </Typography>
-                  }
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary' }
+                  }}
                 />
               </ListItem>
-            </>
-          ) : (
-            <ListItem 
-              button 
-              onClick={() => setLoginOpen(true)}
-              sx={{
-                '&:hover': {
-                  bgcolor: 'primary.dark',
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.contrastText',
-                  },
-                  '& .MuiTypography-root': {
-                    color: 'primary.contrastText',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon>
-                <LoginIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText 
-                primary={
-                  <Typography color="primary">
-                    Login
-                  </Typography>
-                }
-              />
-            </ListItem>
-          )}
+            ))}
         </List>
       </Drawer>
     </>

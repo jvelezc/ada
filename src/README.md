@@ -2,7 +2,7 @@
 
 This application shows accessibility information for various locations in New York City.
 
-## Setup 
+## Setup
 
 1. Copy `.env.local.example` to `.env.local`:
 ```bash
@@ -14,7 +14,7 @@ cp .env.local.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 - `NEXT_PUBLIC_MAPBOX_TOKEN`: Your Mapbox access token
 
-3. Run the development server: 
+3. Run the development server:
 ```bash
 npm run dev
 ```
