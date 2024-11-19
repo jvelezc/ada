@@ -1,4 +1,3 @@
-// EditLocationClient.tsx
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +16,7 @@ export default function EditLocationClient({ initialData }: EditLocationClientPr
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (data: LocationData) => {
-    // Your submit logic
+   
   };
 
   return (
