@@ -56,7 +56,7 @@ export default function MapComponent({}: MapComponentProps) {
         (error) => {
           console.error('Error getting location:', error);
         }
-      );
+      ); 
     }
   };
 
