@@ -7,6 +7,7 @@ import {
   Stack,
   Alert,
   Box,
+  Paper,
 } from '@mui/material';
 import { LocationFormData } from '@/types';
 import SearchBar from '@/components/SearchBar';
@@ -113,12 +114,25 @@ export default function BasicInfoStep({ onNext, onBack, initialData }: BasicInfo
             Address
           </Typography>
           {isSearchVisible ? (
-            <SearchBar
-              onSearch={() => {}}
-              onLocationRequest={() => {}}
-              onAddressSelect={handleAddressSelect}
-              fullWidth
-            />
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                position: 'relative',
+                '& > div': {
+                  position: 'relative',
+                  top: 0,
+                  left: 0,
+                  transform: 'none',
+                },
+              }}
+            >
+              <SearchBar
+                onSearch={() => {}}
+                onLocationRequest={() => {}}
+                onAddressSelect={handleAddressSelect}
+                fullWidth
+              />
+            </Paper>
           ) : (
             <AddressCard 
               address={address}

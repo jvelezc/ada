@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
-import SideMenu from '@/components/SideMenu';
+import { initializeDatabase } from '@/lib/supabase';
 
 // Dynamically import the Map component with no SSR
 const MapComponent = dynamic(
-  () => import('@/components/Map').then(mod => mod.default),
+  () => import('@/components/Map'),
   {
     ssr: false,
     loading: () => (
@@ -23,6 +23,9 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Initialize database when the app loads
+    initializeDatabase().catch(console.error);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -30,21 +33,8 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLoginSuccess = () => {
-    // User state will be updated by the auth state change listener
-  };
-
-  const handleLogout = () => {
-    // User state will be updated by the auth state change listener
-  };
-
   return (
     <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
-      <SideMenu 
-        user={user}
-        onLoginSuccess={handleLoginSuccess}
-        onLogout={handleLogout}
-      />
       <MapComponent />
     </Box>
   );
