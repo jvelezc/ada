@@ -10,20 +10,21 @@ import {
   Stack,
   Alert,
   CircularProgress,
+  Avatar,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import { supabase } from '@/lib/supabase';
 
-interface LoginButtonProps {
-  onLoginSuccess: () => void;
-}
-
-export default function LoginButton({ onLoginSuccess }: LoginButtonProps) {
+export default function LoginButton() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,15 +32,15 @@ export default function LoginButton({ onLoginSuccess }: LoginButtonProps) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
 
       if (error) throw error;
       
+      setUser(data.user);
       setOpen(false);
-      onLoginSuccess();
     } catch (err) {
       setError('Invalid credentials');
     } finally {
@@ -47,21 +48,60 @@ export default function LoginButton({ onLoginSuccess }: LoginButtonProps) {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setAnchorEl(null);
+  };
+
   return (
     <>
-      <Button
-        variant="contained"
-        onClick={() => setOpen(true)}
-        startIcon={<LoginIcon />}
-        sx={{
-          position: 'absolute',
-          top: 16,
-          right: 80,
-          zIndex: 1000,
-        }}
-      >
-        Login
-      </Button>
+      {user ? (
+        <>
+          <Avatar
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{
+              position: 'fixed',
+              top: 16,
+              right: 16,
+              cursor: 'pointer',
+              bgcolor: 'primary.main',
+              zIndex: 1200,
+            }}
+          >
+            {user.email[0].toUpperCase()}
+          </Avatar>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </>
+      ) : (
+        <Button
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<LoginIcon />}
+          sx={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            zIndex: 1200,
+          }}
+        >
+          Login
+        </Button>
+      )}
 
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Login</DialogTitle>

@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup, ViewState } from 'react-map-gl';
-import { Box, Paper, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Paper, Typography, CircularProgress, Alert, Chip } from '@mui/material';
 import { easeCubic } from 'd3-ease';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import SearchBar from './SearchBar';
-import Legend from './Legend';
-import FilterPanel from './FilterPanel';
-import AddLocationButton from './AddLocationButton';
 import { LocationData } from '@/types';
 import { fetchLocations } from '@/lib/supabase';
+import SearchBar from './SearchBar';
+import Legend from './Legend';
+import AddLocationButton from './AddLocationButton';
 
 const INITIAL_VIEW_STATE = {
   latitude: 40.7128,
@@ -25,10 +24,8 @@ export default function MapComponent() {
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW_STATE);
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
-  const [filters, setFilters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -45,10 +42,8 @@ export default function MapComponent() {
   }, []);
 
   useEffect(() => {
-    if (mapLoaded) {
-      loadLocations();
-    }
-  }, [loadLocations, mapLoaded]);
+    loadLocations();
+  }, [loadLocations]);
 
   const handleLocationRequest = useCallback(() => {
     if ('geolocation' in navigator) {
@@ -71,10 +66,6 @@ export default function MapComponent() {
     }
   }, []);
 
-  const handleSearch = useCallback((query: string) => {
-    // This is now handled by the SearchBar component directly
-  }, []);
-
   const handleAddressSelect = useCallback((address: string, lat: number, lng: number) => {
     setViewState(prev => ({
       ...prev,
@@ -86,63 +77,47 @@ export default function MapComponent() {
     }));
   }, []);
 
-  const handleFilterChange = useCallback((newFilters: string[]) => {
-    setFilters(newFilters);
-  }, []);
+  const getAccessibilityColor = (level?: string) => {
+    switch (level) {
+      case 'high':
+        return '#4CAF50';
+      case 'medium':
+        return '#FFC107';
+      case 'low':
+        return '#F44336';
+      default:
+        return '#757575';
+    }
+  };
 
-  const filteredLocations = useMemo(() => {
-    return locations.filter((location) => {
-      if (filters.length === 0) return true;
-
-      return filters.every((filter) => {
-        switch (filter) {
-          case 'high':
-            return location.accessibility_level === 'high';
-          case 'medium':
-            return location.accessibility_level === 'medium';
-          case 'low':
-            return location.accessibility_level === 'low';
-          case 'no-steps':
-            return !location.has_steps;
-          case 'restroom':
-            return location.has_restroom && location.is_restroom_accessible;
-          case 'service-animal':
-            return location.is_dog_friendly;
-          default:
-            return true;
-        }
-      });
-    });
-  }, [locations, filters]);
-
-  if (loading && !mapLoaded) {
+  if (loading) {
     return (
-      <Box
-        sx={{
-          height: '100vh',
-          width: '100vw',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 2,
-        }}
-      >
+      <Box sx={{ 
+        height: '100vh', 
+        width: '100vw', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
         <CircularProgress />
-        <Typography>Loading map...</Typography>
       </Box>
     );
   }
 
   return (
     <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
+      <SearchBar
+        onLocationRequest={handleLocationRequest}
+        onAddressSelect={handleAddressSelect}
+      />
+
       {error && (
         <Alert
           severity="error"
           onClose={() => setError(null)}
           sx={{
             position: 'absolute',
-            top: 16,
+            top: 80,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 1000,
@@ -154,26 +129,14 @@ export default function MapComponent() {
         </Alert>
       )}
 
-      <SearchBar 
-        onSearch={handleSearch} 
-        onLocationRequest={handleLocationRequest}
-        onAddressSelect={handleAddressSelect}
-      />
-
-      <FilterPanel onFilterChange={handleFilterChange} />
-
-      <Legend />
-
       <Map
         {...viewState}
         onMove={(evt) => setViewState(evt.viewState)}
-        mapStyle="mapbox://styles/mapbox/streets-v11"
+        mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
-        renderWorldCopies={false}
-        onLoad={() => setMapLoaded(true)}
       >
-        {filteredLocations.map((location) => (
+        {locations.map((location) => (
           <Marker
             key={location.id}
             latitude={location.latitude}
@@ -181,25 +144,30 @@ export default function MapComponent() {
             onClick={(e) => {
               e.originalEvent?.stopPropagation();
               setSelectedLocation(location);
+              setViewState(prev => ({
+                ...prev,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                zoom: 15,
+                transitionDuration: 1000,
+                transitionEasing: easeCubic
+              }));
             }}
           >
             <Box
               sx={{
-                width: 20,
-                height: 20,
-                bgcolor:
-                  location.accessibility_level === 'high'
-                    ? '#4CAF50'
-                    : location.accessibility_level === 'medium'
-                    ? '#FFC107'
-                    : '#F44336',
+                width: 24,
+                height: 24,
+                bgcolor: getAccessibilityColor(location.accessibility_level),
                 borderRadius: '50%',
-                border: '2px solid white',
-                boxShadow: 2,
+                border: '3px solid',
+                borderColor: 'background.paper',
+                boxShadow: 3,
                 cursor: 'pointer',
-                transition: 'transform 0.2s',
+                transition: 'all 0.2s',
                 '&:hover': {
-                  transform: 'scale(1.2)',
+                  transform: 'scale(1.2) translateY(-2px)',
+                  boxShadow: 6,
                 },
               }}
             />
@@ -214,37 +182,38 @@ export default function MapComponent() {
             closeButton={true}
             closeOnClick={false}
             anchor="bottom"
+            maxWidth="400px"
           >
-            <Paper sx={{ p: 2, maxWidth: 300 }}>
+            <Paper sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="h6" gutterBottom>
                 {selectedLocation.name}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 {selectedLocation.address}
+                {selectedLocation.unit && ` (${selectedLocation.unit})`}
               </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Chip
+                  label={selectedLocation.accessibility_level?.toUpperCase() || 'UNKNOWN'}
+                  size="small"
+                  sx={{
+                    bgcolor: getAccessibilityColor(selectedLocation.accessibility_level),
+                    color: 'white',
+                    fontWeight: 'bold',
+                  }}
+                />
+              </Box>
               {selectedLocation.description && (
-                <Typography variant="body2" paragraph>
+                <Typography variant="body2" sx={{ mt: 2 }}>
                   {selectedLocation.description}
                 </Typography>
               )}
-              <Box sx={{ mt: 1 }}>
-                {selectedLocation.has_restroom && (
-                  <Typography variant="body2">
-                    🚽 {selectedLocation.is_restroom_accessible ? 'Accessible' : 'Non-accessible'} restroom
-                  </Typography>
-                )}
-                {selectedLocation.is_dog_friendly && (
-                  <Typography variant="body2">🐕 Service animals welcome</Typography>
-                )}
-                {!selectedLocation.has_steps && (
-                  <Typography variant="body2">♿ Step-free access</Typography>
-                )}
-              </Box>
             </Paper>
           </Popup>
         )}
       </Map>
 
+      <Legend />
       <AddLocationButton />
     </Box>
   );

@@ -1,8 +1,8 @@
 'use client';
 
-import { Box } from '@mui/material';
-import SideMenu from '@/components/SideMenu';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Box, CircularProgress } from '@mui/material';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminLayout({
@@ -10,42 +10,37 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/');
+      }
+    };
+
+    checkAuth();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (!session) {
+        router.push('/');
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLoginSuccess = () => {
-    // User state will be updated by the auth state change listener
-  };
-
-  const handleLogout = () => {
-    // User state will be updated by the auth state change listener
-  };
+  }, [router]);
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <SideMenu 
-        user={user}
-        onLoginSuccess={handleLoginSuccess}
-        onLogout={handleLogout}
-      />
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minHeight: '100vh',
-          ml: { xs: 0, sm: 8 },
-          pt: { xs: 8, sm: 2 },
-        }}
-      >
-        {children}
-      </Box>
+    <Box
+      component="main"
+      sx={{
+        flexGrow: 1,
+        minHeight: '100vh',
+        pt: { xs: 8, sm: 2 },
+      }}
+    >
+      {children}
     </Box>
   );
 }

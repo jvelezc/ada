@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 
 const inter = Inter({ subsets: ['latin'] });
 
-// Eagerly load SideMenu to prevent hydration issues
 const SideMenu = dynamic(() => import('@/components/SideMenu'), { 
   ssr: true,
   loading: () => null 
@@ -30,7 +29,7 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
-    </head>
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <SideMenu />

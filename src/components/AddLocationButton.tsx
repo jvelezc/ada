@@ -1,34 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Fab, Box, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { keyframes } from '@emotion/react';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function AddLocationButton() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (!user) return null;
 
   return (
     <Box
       sx={{
-        position: 'absolute',
-        bottom: 16,
-        right: 16,
-        zIndex: 1000,
+        position: 'fixed',
+        bottom: 32,
+        right: 32,
+        zIndex: 2000,
       }}
     >
       <Tooltip title="Add New Location" placement="left">
@@ -49,11 +35,15 @@ export default function AddLocationButton() {
             onClick={() => router.push('/add')}
             size="large"
             sx={{
+              width: 64,
+              height: 64,
               background: (theme) => `linear-gradient(45deg, 
                 ${theme.palette.primary.dark} 0%,
                 ${theme.palette.primary.main} 100%
               )`,
-              border: '3px solid black',
+              boxShadow: (theme) => `0 4px 20px ${theme.palette.primary.main}40`,
+              border: '2px solid',
+              borderColor: 'primary.light',
               '&:hover': {
                 background: (theme) => `linear-gradient(45deg, 
                   ${theme.palette.primary.main} 0%,
@@ -62,17 +52,7 @@ export default function AddLocationButton() {
               },
             }}
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{
-                duration: 0.5,
-                delay: 0.2,
-                type: "spring",
-                stiffness: 200
-              }}
-            >
-              <AddIcon sx={{ fontSize: 32 }} />
-            </motion.div>
+            <AddIcon sx={{ fontSize: 32 }} />
           </Fab>
         </motion.div>
       </Tooltip>

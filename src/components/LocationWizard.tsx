@@ -1,182 +1,176 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
+  Dialog,
+  DialogContent,
+  IconButton,
   Box,
+  LinearProgress,
+  Typography,
   Stepper,
   Step,
   StepLabel,
-  Typography,
   Paper,
-  Alert,
 } from '@mui/material';
-import { LocationData } from '@/types';
-import BasicInfoStep from './AddLocationDialog/steps/BasicInfoStep';
-import AccessibilityLevelStep from './AddLocationDialog/steps/AccessibilityLevelStep';
-import EntranceStep from './AddLocationDialog/steps/EntranceStep';
-import DoorwayStep from './AddLocationDialog/steps/DoorwayStep';
-import InteriorStep from './AddLocationDialog/steps/InteriorStep';
-import ParkingStep from './AddLocationDialog/steps/ParkingStep';
-import RestroomStep from './AddLocationDialog/steps/RestroomStep';
-import DogFriendlyStep from './AddLocationDialog/steps/DogFriendlyStep';
-import PhotosStep from './AddLocationDialog/steps/PhotosStep';
-import SummaryStep from './AddLocationDialog/steps/SummaryStep';
-
-const steps = [
-  'Basic Info',
-  'Accessibility',
-  'Entrance',
-  'Doorway',
-  'Interior',
-  'Parking',
-  'Restroom',
-  'Dog Friendly',
-  'Photos',
-  'Review',
-];
+import CloseIcon from '@mui/icons-material/Close';
+import { LocationFormData } from '@/types';
+import BasicInfoStep from './WizardSteps/BasicInfoStep';
+import AccessibilityStep from './WizardSteps/AccessibilityStep';
+import EntranceStep from './WizardSteps/EntranceStep';
+import ReviewStep from './WizardSteps/ReviewStep';
 
 interface LocationWizardProps {
-  initialData?: LocationData;
-  onSubmit: (data: LocationData) => void;
-  onCancel: () => void;
-  mode?: 'create' | 'edit';
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: LocationFormData) => Promise<void>;
 }
 
-export default function LocationWizard({ 
-  initialData, 
-  onSubmit, 
-  onCancel,
-  mode = 'create' 
-}: LocationWizardProps) {
+const steps = [
+  { label: 'Basic Info', description: 'Location details' },
+  { label: 'Accessibility', description: 'Accessibility features' },
+  { label: 'Entrance', description: 'Entrance information' },
+  { label: 'Review', description: 'Review and submit' },
+];
+
+export default function LocationWizard({ open, onClose, onSubmit }: LocationWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [formData, setFormData] = useState<Partial<LocationData>>(initialData || {});
-  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<LocationFormData>>({});
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    }
-  }, [initialData]);
-
-  const handleNext = (data: Partial<LocationData>) => {
-    setFormData((prev) => ({ ...prev, ...data }));
-    setActiveStep((prevStep) => prevStep + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleNext = (stepData: Partial<LocationFormData>) => {
+    setFormData(prev => ({ ...prev, ...stepData }));
+    setActiveStep(prev => prev + 1);
   };
 
   const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveStep(prev => prev - 1);
   };
 
-  const handleSubmit = () => {
-    try {
-      onSubmit(formData as LocationData);
-    } catch (err) {
-      setError('Failed to submit location');
-      console.error('Error:', err);
-    }
+  const handleClose = () => {
+    setActiveStep(0);
+    setFormData({});
+    onClose();
   };
+
+  const progress = ((activeStep + 1) / steps.length) * 100;
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          minHeight: '80vh',
+          maxHeight: '90vh',
+          borderRadius: 2,
+          background: 'linear-gradient(to bottom, #1a1a1a, #2d2d2d)',
+        },
+      }}
+    >
+      <Box sx={{ position: 'relative' }}>
+        <Box sx={{ 
+          p: 2, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              {steps[activeStep].label}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {steps[activeStep].description}
+            </Typography>
+          </Box>
+          <IconButton onClick={handleClose} sx={{ color: 'text.secondary' }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
 
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          {mode === 'create' ? 'Add New Location' : 'Edit Location'}
-        </Typography>
+        <LinearProgress 
+          variant="determinate" 
+          value={progress} 
+          sx={{ 
+            height: 4,
+            bgcolor: 'rgba(255,255,255,0.1)',
+          }}
+        />
 
-        <Stepper 
-          activeStep={activeStep} 
-          alternativeLabel
-          sx={{ mt: 3 }}
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 3,
+            bgcolor: 'transparent',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
         >
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-      </Paper>
+          <Stepper 
+            activeStep={activeStep} 
+            alternativeLabel
+            sx={{
+              '& .MuiStepLabel-label': {
+                color: 'text.secondary',
+                '&.Mui-active': {
+                  color: 'primary.main',
+                  fontWeight: 'bold',
+                },
+              },
+              '& .MuiStepIcon-root': {
+                color: 'action.disabled',
+                '&.Mui-active': {
+                  color: 'primary.main',
+                },
+                '&.Mui-completed': {
+                  color: 'primary.dark',
+                },
+              },
+            }}
+          >
+            {steps.map((step) => (
+              <Step key={step.label}>
+                <StepLabel>{step.label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Paper>
 
-      <Paper sx={{ p: 3, borderRadius: 2 }}>
-        {activeStep === 0 && (
-          <BasicInfoStep 
-            onNext={handleNext} 
-            onBack={onCancel}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 1 && (
-          <AccessibilityLevelStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 2 && (
-          <EntranceStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 3 && (
-          <DoorwayStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 4 && (
-          <InteriorStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 5 && (
-          <ParkingStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 6 && (
-          <RestroomStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 7 && (
-          <DogFriendlyStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 8 && (
-          <PhotosStep 
-            onNext={handleNext} 
-            onBack={handleBack}
-            initialData={formData}
-          />
-        )}
-        {activeStep === 9 && (
-          <SummaryStep
-            data={formData}
-            onBack={handleBack}
-            onSubmit={handleSubmit}
-            mode={mode}
-          />
-        )}
-      </Paper>
-    </Box>
+        <DialogContent sx={{ p: 4 }}>
+          <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+            {activeStep === 0 && (
+              <BasicInfoStep 
+                onNext={handleNext}
+                initialData={formData}
+              />
+            )}
+            {activeStep === 1 && (
+              <AccessibilityStep
+                onNext={handleNext}
+                onBack={handleBack}
+                initialData={formData}
+              />
+            )}
+            {activeStep === 2 && (
+              <EntranceStep
+                onNext={handleNext}
+                onBack={handleBack}
+                initialData={formData}
+              />
+            )}
+            {activeStep === 3 && (
+              <ReviewStep
+                data={formData}
+                onBack={handleBack}
+                onSubmit={() => onSubmit(formData as LocationFormData)}
+              />
+            )}
+          </Box>
+        </DialogContent>
+      </Box>
+    </Dialog>
   );
 }

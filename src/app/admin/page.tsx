@@ -15,8 +15,16 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useRouter } from 'next/navigation';
@@ -24,9 +32,13 @@ import { LocationData } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState(0);
   const [pendingLocations, setPendingLocations] = useState<LocationData[]>([]);
+  const [approvedLocations, setApprovedLocations] = useState<LocationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [locationToDelete, setLocationToDelete] = useState<LocationData | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,31 +48,40 @@ export default function AdminPage() {
         router.push('/');
         return;
       }
-      fetchPendingLocations();
+      fetchLocations();
     };
 
     checkAuth();
   }, [router]);
 
-  const fetchPendingLocations = async () => {
+  const fetchLocations = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      // Fetch pending locations
+      const { data: pendingData, error: pendingError } = await supabase
         .from('pending_locations')
         .select('*')
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
-      setPendingLocations(data || []);
+      if (pendingError) throw pendingError;
+      setPendingLocations(pendingData || []);
+
+      // Fetch approved locations
+      const { data: approvedData, error: approvedError } = await supabase
+        .from('locations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (approvedError) throw approvedError;
+      setApprovedLocations(approvedData || []);
     } catch (err) {
-      setError('Failed to fetch pending locations');
       console.error('Error:', err);
+      setError('Failed to fetch locations');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEdit = (id: number) => {
-    router.push(`/admin/${id}`);
   };
 
   const handleApprove = async (location: LocationData) => {
@@ -87,8 +108,7 @@ export default function AdminPage() {
 
       if (deleteError) throw deleteError;
 
-      // Refresh the list
-      fetchPendingLocations();
+      fetchLocations();
     } catch (err) {
       setError('Failed to approve location');
       console.error('Error:', err);
@@ -109,11 +129,32 @@ export default function AdminPage() {
         .eq('id', id);
 
       if (error) throw error;
-
-      // Refresh the list
-      fetchPendingLocations();
+      fetchLocations();
     } catch (err) {
       setError('Failed to reject location');
+      console.error('Error:', err);
+    }
+  };
+
+  const handleEdit = (location: LocationData) => {
+    router.push(`/admin/edit/${location.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!locationToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', locationToDelete.id);
+
+      if (error) throw error;
+      fetchLocations();
+      setDeleteDialogOpen(false);
+      setLocationToDelete(null);
+    } catch (err) {
+      setError('Failed to delete location');
       console.error('Error:', err);
     }
   };
@@ -127,7 +168,7 @@ export default function AdminPage() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, ml: { sm: 8 } }}>
       <Typography variant="h4" gutterBottom>
         Admin Panel
       </Typography>
@@ -138,6 +179,15 @@ export default function AdminPage() {
         </Alert>
       )}
 
+      <Tabs 
+        value={activeTab} 
+        onChange={(_e, newValue) => setActiveTab(newValue)}
+        sx={{ mb: 3 }}
+      >
+        <Tab label="Pending Locations" />
+        <Tab label="Approved Locations" />
+      </Tabs>
+
       <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2 }}>
         <TableContainer>
           <Table>
@@ -147,12 +197,12 @@ export default function AdminPage() {
                 <TableCell>Address</TableCell>
                 <TableCell>Accessibility</TableCell>
                 <TableCell>Submitted By</TableCell>
-                <TableCell>Submitted At</TableCell>
+                <TableCell>Date</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {pendingLocations.map((location) => (
+              {(activeTab === 0 ? pendingLocations : approvedLocations).map((location) => (
                 <TableRow key={location.id}>
                   <TableCell>{location.name}</TableCell>
                   <TableCell>{location.address}</TableCell>
@@ -171,31 +221,51 @@ export default function AdminPage() {
                     {new Date(location.submitted_at!).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton 
-                      onClick={() => handleEdit(location.id!)}
-                      color="primary"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleApprove(location)}
-                      color="success"
-                    >
-                      <CheckCircleIcon />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleReject(location.id!)}
-                      color="error"
-                    >
-                      <CancelIcon />
-                    </IconButton>
+                    {activeTab === 0 ? (
+                      <>
+                        <IconButton 
+                          onClick={() => handleApprove(location)}
+                          title="Approve"
+                          color="success"
+                        >
+                          <CheckCircleIcon />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleReject(location.id!)}
+                          title="Reject"
+                          color="error"
+                        >
+                          <CancelIcon />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton 
+                          onClick={() => handleEdit(location)}
+                          title="Edit"
+                          color="primary"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => {
+                            setLocationToDelete(location);
+                            setDeleteDialogOpen(true);
+                          }}
+                          title="Delete"
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {pendingLocations.length === 0 && (
+              {(activeTab === 0 ? pendingLocations.length === 0 : approvedLocations.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    No pending locations
+                    No {activeTab === 0 ? 'pending' : 'approved'} locations
                   </TableCell>
                 </TableRow>
               )}
@@ -203,6 +273,20 @@ export default function AdminPage() {
           </Table>
         </TableContainer>
       </Paper>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Location?</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete {locationToDelete?.name}? This action cannot be undone.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
