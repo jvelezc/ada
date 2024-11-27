@@ -9,6 +9,9 @@ export interface LocationData {
   accessibility_status_unknown?: boolean;
   description?: string;
   has_steps?: boolean;
+  has_restroom?: boolean;
+  is_restroom_accessible?: boolean;
+  is_dog_friendly?:boolean;
   step_status_unknown?: boolean;
   step_description?: string;
   door_width?: 'wide' | 'standard' | 'narrow';

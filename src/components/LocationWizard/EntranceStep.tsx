@@ -40,11 +40,9 @@ export default function EntranceStep({ onNext, onBack, initialData }: EntranceSt
     initialData?.step_status_unknown ? 'unknown' : 'no'
   );
   const [stepDescription, setStepDescription] = useState(initialData?.step_description || '');
-  const [doorWidth, setDoorWidth] = useState<number>(initialData?.door_width_inches || 36);
-  const [doorType, setDoorType] = useState<'automatic' | 'manual_easy' | 'manual_heavy'>(
-    initialData?.door_type || 'automatic'
-  );
-  const [doorNotes, setDoorNotes] = useState(initialData?.doorway_notes || '');
+  const [doorWidth, setDoorWidth] = useState<number>(36);
+  const [doorType, setDoorType] = useState<'automatic' | 'manual_easy' | 'manual_heavy'>('automatic');
+  const [doorNotes, setDoorNotes] = useState('');
 
   const getDoorWidthCategory = (width: number) => {
     if (width >= 36) return 'wide';

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, CircularProgress } from '@mui/material';
-import { supabase } from '@/lib/supabase';
+import { Box, CircularProgress, Container } from '@mui/material';
+import { supabase } from '@/lib/supabase-client';
 
 export default function AdminLayout({
   children,
@@ -11,12 +11,20 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.replace('/');
+          return;
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth error:', error);
+        router.replace('/');
       }
     };
 
@@ -24,23 +32,42 @@ export default function AdminLayout({
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.push('/');
+        router.replace('/');
       }
     });
 
     return () => subscription.unsubscribe();
   }, [router]);
 
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          height: '100vh', 
+          width: '100vw',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'background.default'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Box
-      component="main"
+    <Container 
+      maxWidth={false}
       sx={{
-        flexGrow: 1,
         minHeight: '100vh',
-        pt: { xs: 8, sm: 2 },
+        bgcolor: 'background.default',
+        pt: { xs: 2, sm: 3 },
+        pb: { xs: 4, sm: 5 },
+        px: { xs: 2, sm: 3, md: 4 },
       }}
     >
       {children}
-    </Box>
+    </Container>
   );
 }

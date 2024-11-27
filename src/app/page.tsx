@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
-import { initializeDatabase } from '@/lib/supabase';
 
+// Dynamically import the Map component with no SSR
 const MapComponent = dynamic(
-  () => import('@/components/Map'),
+  () => import('@/components/Map').then(mod => mod.default),
   {
     ssr: false,
     loading: () => (
-      <Box sx={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ 
+        height: '100vh', 
+        width: '100vw', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        color: 'text.primary'
+      }}>
         Loading map...
       </Box>
     ),
@@ -19,12 +25,14 @@ const MapComponent = dynamic(
 );
 
 export default function Home() {
-  useEffect(() => {
-    initializeDatabase().catch(console.error);
-  }, []);
-
   return (
-    <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
+    <Box sx={{ 
+      height: '100vh', 
+      width: '100vw', 
+      position: 'relative',
+      bgcolor: 'background.default',
+      overflow: 'hidden'
+    }}>
       <MapComponent />
     </Box>
   );

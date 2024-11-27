@@ -19,13 +19,13 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { LocationFormData } from '@/types';
-import { addLocation } from '@/lib/supabase';
-import BasicInfoStep from '@/components/WizardSteps/BasicInfoStep';
-import AccessibilityStep from '@/components/WizardSteps/AccessibilityStep';
-import EntranceStep from '@/components/WizardSteps/EntranceStep';
-import InteriorStep from '@/components/WizardSteps/InteriorStep';
-import ReviewStep from '@/components/WizardSteps/ReviewStep';
+import BasicInfoStep from '@/components/LocationWizard/BasicInfoStep';
+import AccessibilityStep from '@/components/LocationWizard/AccessibilityStep';
+import EntranceStep from '@/components/LocationWizard/EntranceStep';
+import InteriorStep from '@/components/LocationWizard/InteriorStep';
+import ReviewStep from '@/components/LocationWizard/ReviewStep';
 import SuccessConfirmation from '@/components/SuccessConfirmation';
+import { addLocation } from '@/lib/supabase-server';
 
 const steps = [
   { label: 'Basic Info', description: 'Location details' },

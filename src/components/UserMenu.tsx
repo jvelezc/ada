@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 
 interface UserMenuProps {
   email: string;

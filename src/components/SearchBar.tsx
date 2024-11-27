@@ -1,25 +1,27 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
   InputBase,
   IconButton,
   Tooltip,
-  CircularProgress,
+  ClickAwayListener,
   List,
   ListItem,
   ListItemText,
-  Fade,
+  CircularProgress,
+  Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { motion } from 'framer-motion';
 
 interface SearchBarProps {
+  onSearch: (query: string) => void;
   onLocationRequest: () => void;
   onAddressSelect: (address: string, lat: number, lng: number) => void;
+  fullWidth?: boolean;
 }
 
 interface MapboxFeature {
@@ -28,10 +30,17 @@ interface MapboxFeature {
   id: string;
 }
 
-export default function SearchBar({ onLocationRequest, onAddressSelect }: SearchBarProps) {
+export default function SearchBar({ 
+  onSearch, 
+  onLocationRequest, 
+  onAddressSelect,
+  fullWidth = false 
+}: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 600);
 
   const searchMapbox = useCallback(async (searchQuery: string) => {
     if (!searchQuery || searchQuery.length < 3) {
@@ -46,84 +55,99 @@ export default function SearchBar({ onLocationRequest, onAddressSelect }: Search
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?` +
         `access_token=${mapboxToken}&` +
         'types=address,poi&' +
-        'country=us&' +
+        'country=us,pr,as,gu,mp,vi&' +
         'limit=5'
       );
 
-      if (!response.ok) throw new Error('Search failed');
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
 
       const data = await response.json();
       setSuggestions(data.features || []);
     } catch (err) {
       console.error('Error searching locations:', err);
+      setError('Search failed. Please try again.');
       setSuggestions([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    const debounceTimeout = setTimeout(() => {
+      searchMapbox(query);
+    }, 300);
+
+    return () => clearTimeout(debounceTimeout);
+  }, [query, searchMapbox]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    searchMapbox(query);
+    onSearch(query);
   };
 
   const handleSuggestionClick = (suggestion: MapboxFeature) => {
-    onAddressSelect(
-      suggestion.place_name,
-      suggestion.center[1], // latitude
-      suggestion.center[0]  // longitude
-    );
+    if (onAddressSelect) {
+      onAddressSelect(
+        suggestion.place_name,
+        suggestion.center[1], // latitude
+        suggestion.center[0]  // longitude
+      );
+    }
     setQuery(suggestion.place_name);
     setSuggestions([]);
   };
 
   return (
-    <Box sx={{ 
-      position: 'absolute',
-      top: 16,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: { xs: '90%', sm: '600px' },
-      zIndex: 1000,
-    }}>
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
+    <ClickAwayListener onClickAway={() => setSuggestions([])}>
+      <Box sx={{ 
+        position: 'fixed',
+        top: 16,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: fullWidth ? '100%' : { xs: '90%', sm: '600px' },
+        px: 2,
+        zIndex: 1000,
+      }}>
         <Paper
           component="form"
-          onSubmit={handleSearch}
+          onSubmit={handleSubmit}
           elevation={3}
           sx={{
             p: '2px 4px',
             display: 'flex',
             alignItems: 'center',
             width: '100%',
-            borderRadius: 3,
+            border: '2px solid',
+            borderColor: 'primary.main',
+            borderRadius: 2,
             bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            backdropFilter: 'blur(8px)',
             '&:hover': {
-              boxShadow: 4,
+              borderColor: 'primary.dark',
             },
           }}
         >
           <InputBase
-            sx={{ ml: 2, flex: 1 }}
-            placeholder="Search for a location..."
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              searchMapbox(e.target.value);
+            sx={{ 
+              ml: 1, 
+              flex: 1,
+              fontSize: { xs: '0.9rem', sm: '1rem' },
+              '& input': {
+                padding: { xs: '8px 0', sm: '8px 0' },
+              },
+              color: 'text.primary',
             }}
+            placeholder={isMobile ? "Search locations..." : "Search for a location in the United States..."}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             autoComplete="off"
           />
           {loading ? (
@@ -136,45 +160,41 @@ export default function SearchBar({ onLocationRequest, onAddressSelect }: Search
           <Box sx={{ height: 24, mx: 0.5, borderLeft: 1, borderColor: 'divider' }} />
           <Tooltip title="Use current location">
             <IconButton 
-              onClick={onLocationRequest}
-              sx={{ 
-                p: '10px',
-                color: 'primary.main',
-                '&:hover': {
-                  color: 'primary.dark',
-                },
-              }}
+              onClick={onLocationRequest} 
+              sx={{ p: '10px' }}
             >
               <MyLocationIcon />
             </IconButton>
           </Tooltip>
         </Paper>
 
-        <Fade in={suggestions.length > 0}>
+        {suggestions.length > 0 && (
           <Paper
             elevation={3}
             sx={{
               mt: 1,
-              maxHeight: 300,
+              maxHeight: 400,
               overflow: 'auto',
-              borderRadius: 2,
+              width: '100%',
               bgcolor: 'background.paper',
-              backdropFilter: 'blur(8px)',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           >
             <List>
               {suggestions.map((suggestion) => (
                 <ListItem
                   key={suggestion.id}
-                  button
                   onClick={() => handleSuggestionClick(suggestion)}
                   sx={{
-                    py: 1.5,
-                    px: 2,
+                    py: 2,
+                    px: 3,
+                    cursor: 'pointer',  // Make the item look clickable
                     transition: 'all 0.2s',
                     '&:hover': {
                       bgcolor: 'action.hover',
-                      transform: 'scale(1.01)',
+                      transform: 'translateX(4px)',
                     },
                   }}
                 >
@@ -191,8 +211,18 @@ export default function SearchBar({ onLocationRequest, onAddressSelect }: Search
               ))}
             </List>
           </Paper>
-        </Fade>
-      </motion.div>
-    </Box>
+        )}
+
+        {error && (
+          <Typography 
+            color="error" 
+            variant="body2" 
+            sx={{ mt: 1, textAlign: 'center' }}
+          >
+            {error}
+          </Typography>
+        )}
+      </Box>
+    </ClickAwayListener>
   );
 }

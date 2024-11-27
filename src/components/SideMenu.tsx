@@ -9,100 +9,98 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Divider,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  Stack,
-  Alert,
-  CircularProgress,
+  Tooltip,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { AnimatePresence, motion } from 'framer-motion';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
-import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase-client';
+
+// Update User type to match Supabase type
+interface User {
+  email?: string;  // Allow email to be undefined
+  id: string;
+}
+
+const menuItems = [
+  { 
+    id: 'home',
+    text: 'Home', 
+    icon: <HomeIcon />, 
+    path: '/',
+    requiresAuth: false
+  },
+  { 
+    id: 'admin',
+    text: 'Admin Panel', 
+    icon: <AdminPanelSettingsIcon />, 
+    path: '/admin',
+    requiresAuth: true
+  },
+];
 
 export default function SideMenu() {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      
-      // Redirect from admin page if not logged in
-      if (!session?.user && pathname?.startsWith('/admin')) {
-        router.push('/');
+      if (session?.user) {
+        setUser({
+          email: session.user.email,  // Now compatible with optional email
+          id: session.user.id,
+        });
+      } else {
+        setUser(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [router, pathname]);
+  }, []);
 
-  const menuItems = [
-    { text: 'Home', icon: <HomeIcon />, path: '/' },
-    ...(user ? [
-      { text: 'Admin Panel', icon: <AdminPanelSettingsIcon />, path: '/admin' }
-    ] : []),
-  ];
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      
-      setLoginDialogOpen(false);
-      setEmail('');
-      setPassword('');
-    } catch (err) {
-      setError('Invalid credentials');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleNavigate = (path: string) => {
+    router.push(path);
     setOpen(false);
   };
 
+  const visibleMenuItems = menuItems.filter(item => 
+    !item.requiresAuth || (item.requiresAuth && user)
+  );
+
   return (
     <>
-      <IconButton
-        onClick={() => setOpen(true)}
-        sx={{
-          position: 'fixed',
-          top: 16,
-          left: 16,
-          zIndex: 1200,
-          bgcolor: 'background.paper',
-          '&:hover': {
-            bgcolor: 'action.hover',
-          },
-        }}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <MenuIcon />
-      </IconButton>
+        <Tooltip title="Menu" placement="right">
+          <IconButton
+            onClick={() => setOpen(true)}
+            sx={{
+              position: 'fixed',
+              top: 16,
+              left: 16,
+              zIndex: 1200,
+              bgcolor: theme => alpha(theme.palette.background.paper, 0.1),
+              backdropFilter: 'blur(8px)',
+              color: 'common.white',
+              p: 1.5,
+              '&:hover': {
+                bgcolor: theme => alpha(theme.palette.background.paper, 0.15),
+                transform: 'scale(1.05)',
+              },
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            <MenuIcon sx={{ fontSize: 28 }} />
+          </IconButton>
+        </Tooltip>
+      </motion.div>
 
       <Drawer
         anchor="left"
@@ -112,127 +110,51 @@ export default function SideMenu() {
           sx: {
             width: 280,
             bgcolor: 'background.paper',
-            display: 'flex',
-            flexDirection: 'column',
+            borderRight: '1px solid',
+            borderColor: 'divider',
           },
         }}
       >
-        <List sx={{ pt: 8, flex: 1 }}>
-          {menuItems.map((item, index) => (
-            <Box key={item.text}>
-              {index > 0 && <Divider />}
-              <ListItem
-                button
-                onClick={() => {
-                  router.push(item.path);
-                  setOpen(false);
-                }}
-                selected={pathname === item.path}
-                sx={{
-                  py: 2,
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                  },
-                  '&.Mui-selected': {
-                    bgcolor: 'primary.dark',
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                    '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                      color: 'primary.contrastText',
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: pathname === item.path ? 'primary.contrastText' : 'primary.main' }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    sx: { fontWeight: 500 }
-                  }}
-                />
-              </ListItem>
-            </Box>
-          ))}
-        </List>
-
-        <Divider />
-        <Box sx={{ p: 2 }}>
-          {user ? (
-            <Button
-              fullWidth
-              variant="outlined"
-              color="primary"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-              sx={{ py: 1 }}
-            >
-              Logout
-            </Button>
-          ) : (
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              startIcon={<LoginIcon />}
-              onClick={() => setLoginDialogOpen(true)}
-              sx={{ py: 1 }}
-            >
-              Login
-            </Button>
-          )}
-        </Box>
-      </Drawer>
-
-      <Dialog 
-        open={loginDialogOpen} 
-        onClose={() => setLoginDialogOpen(false)}
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
+      <List>
+  <AnimatePresence mode="wait">
+    {visibleMenuItems.map((item) => (
+      <motion.div
+        key={item.id}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.2 }}
       >
-        <DialogTitle>Login</DialogTitle>
-        <DialogContent>
-          <form onSubmit={handleLogin}>
-            <Stack spacing={3} sx={{ pt: 1, minWidth: 300 }}>
-              {error && (
-                <Alert severity="error" onClose={() => setError(null)}>
-                  {error}
-                </Alert>
-              )}
+        <ListItem
+          component="li" // Specify the underlying component type, like 'li' or 'div'
+          onClick={() => handleNavigate(item.path)}
+          sx={{
+            py: 2,
+            cursor: 'pointer', // Indicate that the item is clickable
+            '&:hover': {
+              bgcolor: 'primary.dark',
+              '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
+                color: 'primary.contrastText',
+              },
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: 'primary.main' }}>
+            {item.icon}
+          </ListItemIcon>
+          <ListItemText 
+            primary={item.text}
+            primaryTypographyProps={{
+              sx: { color: 'text.primary' }
+            }}
+          />
+        </ListItem>
+      </motion.div>
+    ))}
+  </AnimatePresence>
+</List>
 
-              <TextField
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                fullWidth
-              />
-
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                fullWidth
-              />
-
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                fullWidth
-              >
-                {loading ? <CircularProgress size={24} /> : 'Login'}
-              </Button>
-            </Stack>
-          </form>
-        </DialogContent>
-      </Dialog>
+      </Drawer>
     </>
   );
 }

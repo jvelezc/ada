@@ -14,10 +14,9 @@ interface ReviewStepProps {
   data: Partial<LocationFormData>;
   onBack: () => void;
   onSubmit: () => void;
-  mode?: 'create' | 'edit';
 }
 
-export default function ReviewStep({ data, onBack, onSubmit, mode = 'create' }: ReviewStepProps) {
+export default function ReviewStep({ data, onBack, onSubmit }: ReviewStepProps) {
   return (
     <Stack spacing={3}>
       <Typography variant="body1" color="text.secondary">
@@ -102,7 +101,7 @@ export default function ReviewStep({ data, onBack, onSubmit, mode = 'create' }: 
           onClick={onSubmit}
           color="primary"
         >
-          {mode === 'create' ? 'Submit Location' : 'Save Changes'}
+          Submit Location
         </Button>
       </Box>
     </Stack>
