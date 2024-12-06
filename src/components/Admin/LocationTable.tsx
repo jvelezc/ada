@@ -79,7 +79,7 @@ export default function LocationTable({
                 </TableCell>
                 <TableCell align="right">
                   <IconButton 
-                    onClick={() => onEdit(location.id!)}
+                    onClick={() => location.id && onEdit(location.id)}
                     color="primary"
                     size="small"
                     sx={{ mr: 1 }}
@@ -101,7 +101,7 @@ export default function LocationTable({
                         </Tooltip>
                       </IconButton>
                       <IconButton 
-                        onClick={() => onReject(location.id!)}
+                        onClick={() => location.id && onReject(location.id)}
                         color="error"
                         size="small"
                         sx={{ mr: 1 }}

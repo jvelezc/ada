@@ -35,7 +35,7 @@ export async function addLocation(data: LocationFormData) {
 // Function to fetch all approved locations
 export async function fetchLocations() {
   try {
-    const { data, error } = await supabaseServer
+    const { data: approvedLocations, error } = await supabaseServer
       .from('locations')
       .select('*')
       .eq('status', 'approved')
@@ -46,7 +46,7 @@ export async function fetchLocations() {
       return [];
     }
 
-    return data || [];
+    return approvedLocations || [];
   } catch (error) {
     console.error('Error fetching locations:', error);
     return [];
@@ -56,32 +56,55 @@ export async function fetchLocations() {
 // Function to fetch a single location by ID
 export async function fetchLocationById(id: string) {
   try {
-    const { data, error } = await supabaseServer
+    // First try to find in approved locations
+    const { data: approvedLocation, error: approvedError } = await supabaseServer
       .from('locations')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (approvedError) throw approvedError;
+
+    // If not found in approved locations, try pending locations
+    if (!approvedLocation) {
+      const { data: pendingLocation, error: pendingError } = await supabaseServer
+        .from('pending_locations')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (pendingError) throw pendingError;
+      return pendingLocation;
+    }
+
+    return approvedLocation;
   } catch (error) {
     console.error('Error fetching location:', error);
-    throw new Error('Failed to fetch location');
+    throw error;
   }
 }
 
 // Function to update a location by ID
 export async function updateLocationById(id: string, data: LocationFormData) {
   try {
-    const { error } = await supabaseServer
+    // First try to update in approved locations
+    const { error: approvedUpdateError } = await supabaseServer
       .from('locations')
       .update(data)
       .eq('id', id);
 
-    if (error) throw error;
+    if (approvedUpdateError) {
+      // If not found in approved locations, try pending locations
+      const { error: pendingUpdateError } = await supabaseServer
+        .from('pending_locations')
+        .update(data)
+        .eq('id', id);
+
+      if (pendingUpdateError) throw pendingUpdateError;
+    }
   } catch (error) {
     console.error('Error updating location:', error);
-    throw new Error('Failed to update location');
+    throw error;
   }
 }
 

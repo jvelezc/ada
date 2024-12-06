@@ -86,6 +86,27 @@ export default function AdminPanel() {
     setFilteredLocations(newValue === 0 ? pendingLocations : approvedLocations);
   };
 
+  const handleEdit = (id: number) => {
+    router.push(`/admin/edit/${id}`);
+  };
+
+  const handleDelete = async (location: LocationData) => {
+    try {
+      const { error } = await supabase
+        .from(activeTab === 0 ? 'pending_locations' : 'locations')
+        .delete()
+        .eq('id', location.id);
+
+      if (error) throw error;
+      
+      await fetchLocations();
+      setLocationToDelete(null);
+    } catch (err) {
+      console.error('Error deleting location:', err);
+      setError('Failed to delete location');
+    }
+  };
+
   if (loading) {
     return (
       <Box 
@@ -132,12 +153,42 @@ export default function AdminPanel() {
       <Paper sx={{ p: 2 }}>
         <LocationTable
           locations={filteredLocations}
-          onEdit={(id) => router.push(`/admin/edit/${id}`)}
+          onEdit={handleEdit}
           onApprove={async (location) => {
-            // Implement approve logic
+            try {
+              const { error: deleteError } = await supabase
+                .from('pending_locations')
+                .delete()
+                .eq('id', location.id);
+
+              if (deleteError) throw deleteError;
+
+              const { error: insertError } = await supabase
+                .from('locations')
+                .insert([{ ...location, status: 'approved' }]);
+
+              if (insertError) throw insertError;
+
+              await fetchLocations();
+            } catch (err) {
+              console.error('Error approving location:', err);
+              setError('Failed to approve location');
+            }
           }}
           onReject={async (id) => {
-            // Implement reject logic
+            try {
+              const { error } = await supabase
+                .from('pending_locations')
+                .delete()
+                .eq('id', id);
+
+              if (error) throw error;
+
+              await fetchLocations();
+            } catch (err) {
+              console.error('Error rejecting location:', err);
+              setError('Failed to reject location');
+            }
           }}
           onDelete={(location) => setLocationToDelete(location)}
           showApproveReject={activeTab === 0}
@@ -148,9 +199,7 @@ export default function AdminPanel() {
         open={!!locationToDelete}
         locationName={locationToDelete?.name || ''}
         onClose={() => setLocationToDelete(null)}
-        onConfirm={async () => {
-          // Implement delete logic
-        }}
+        onConfirm={() => locationToDelete && handleDelete(locationToDelete)}
       />
     </Box>
   );
