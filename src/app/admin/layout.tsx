@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, CircularProgress, Container } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { supabase } from '@/lib/supabase-client';
 
 export default function AdminLayout({
@@ -43,8 +43,8 @@ export default function AdminLayout({
     return (
       <Box 
         sx={{ 
-          height: '100vh', 
-          width: '100vw',
+          height: '100vh',
+          width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -57,17 +57,15 @@ export default function AdminLayout({
   }
 
   return (
-    <Container 
-      maxWidth={false}
+    <Box 
       sx={{
         minHeight: '100vh',
+        width: '100%',
         bgcolor: 'background.default',
-        pt: { xs: 2, sm: 3 },
-        pb: { xs: 4, sm: 5 },
-        px: { xs: 2, sm: 3, md: 4 },
+        p: 3,
       }}
     >
       {children}
-    </Container>
+    </Box>
   );
 }

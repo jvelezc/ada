@@ -1,15 +1,13 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
-import SideMenu from '@/components/SideMenu';
-import { Metadata } from 'next';
+import { AuthProvider } from '@/contexts/AuthContext';
+import Menu from '@/components/Menu';
+import { metadata } from './metadata';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'Accessibility Map',
-  description: 'Interactive map showing ADA-compliant locations',
-};
+export { metadata };
 
 export default function RootLayout({
   children,
@@ -20,8 +18,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider>
-          <SideMenu />
-          {children}
+          <AuthProvider>
+            <Menu />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

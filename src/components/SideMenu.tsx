@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -10,20 +10,16 @@ import {
   ListItemText,
   IconButton,
   Tooltip,
+  Button,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { AnimatePresence, motion } from 'framer-motion';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase-client';
-
-// Update User type to match Supabase type
-interface User {
-  email?: string;  // Allow email to be undefined
-  id: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   { 
@@ -44,27 +40,18 @@ const menuItems = [
 
 export default function SideMenu() {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          email: session.user.email,  // Now compatible with optional email
-          id: session.user.id,
-        });
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, signOut } = useAuth();
 
   const handleNavigate = (path: string) => {
     router.push(path);
     setOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    setOpen(false);
+    router.push('/');
   };
 
   const visibleMenuItems = menuItems.filter(item => 
@@ -115,45 +102,65 @@ export default function SideMenu() {
           },
         }}
       >
-      <List>
-  <AnimatePresence mode="wait">
-    {visibleMenuItems.map((item) => (
-      <motion.div
-        key={item.id}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 20 }}
-        transition={{ duration: 0.2 }}
-      >
-        <ListItem
-          component="li" // Specify the underlying component type, like 'li' or 'div'
-          onClick={() => handleNavigate(item.path)}
-          sx={{
-            py: 2,
-            cursor: 'pointer', // Indicate that the item is clickable
-            '&:hover': {
-              bgcolor: 'primary.dark',
-              '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
-                color: 'primary.contrastText',
-              },
-            },
-          }}
-        >
-          <ListItemIcon sx={{ color: 'primary.main' }}>
-            {item.icon}
-          </ListItemIcon>
-          <ListItemText 
-            primary={item.text}
-            primaryTypographyProps={{
-              sx: { color: 'text.primary' }
-            }}
-          />
-        </ListItem>
-      </motion.div>
-    ))}
-  </AnimatePresence>
-</List>
+        <List sx={{ flexGrow: 1 }}>
+          <AnimatePresence mode="wait">
+            {visibleMenuItems.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ListItem
+                  onClick={() => handleNavigate(item.path)}
+                  sx={{
+                    py: 2,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                      '& .MuiListItemIcon-root, & .MuiListItemText-primary': {
+                        color: 'primary.contrastText',
+                      },
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'primary.main' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      sx: { color: 'text.primary' }
+                    }}
+                  />
+                </ListItem>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </List>
 
+        {user && (
+          <Box sx={{ p: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="primary"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{
+                py: 1,
+                borderRadius: 2,
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  color: 'primary.contrastText',
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
+        )}
       </Drawer>
     </>
   );

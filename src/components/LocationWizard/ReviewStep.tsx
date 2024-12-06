@@ -14,9 +14,17 @@ interface ReviewStepProps {
   data: Partial<LocationFormData>;
   onBack: () => void;
   onSubmit: () => void;
+  mode?: 'create' | 'edit';
+  disabled?: boolean;
 }
 
-export default function ReviewStep({ data, onBack, onSubmit }: ReviewStepProps) {
+export default function ReviewStep({ 
+  data, 
+  onBack, 
+  onSubmit, 
+  mode = 'create',
+  disabled = false,
+}: ReviewStepProps) {
   return (
     <Stack spacing={3}>
       <Typography variant="body1" color="text.secondary">
@@ -70,14 +78,13 @@ export default function ReviewStep({ data, onBack, onSubmit }: ReviewStepProps) 
               Entrance Details
             </Typography>
             <Stack spacing={1}>
+            <Typography variant="body1">
+              {`• Steps: ${data.step_status_unknown ? "Unknown" : 
+                          data.has_steps ? "Yes" : "No"}`}
+              {data.step_description && ` - ${data.step_description}`}
+            </Typography>
               <Typography variant="body1">
-                • Steps: {data.step_status_unknown ? "Unknown" : 
-                         data.has_steps ? "Yes" : "No"}
-                {data.step_description && ` - ${data.step_description}`}
-              </Typography>
-              <Typography variant="body1">
-                • Door Width: {data.door_width_inches}" 
-                ({data.door_width})
+               • Door Width: {`${data.door_width_inches}" (${data.door_width})`}
               </Typography>
               <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
                 • Door Type: {data.door_type?.replace('_', ' ')}
@@ -93,15 +100,19 @@ export default function ReviewStep({ data, onBack, onSubmit }: ReviewStepProps) 
       </Paper>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button onClick={onBack}>
+        <Button 
+          onClick={onBack}
+          disabled={disabled}
+        >
           Back
         </Button>
         <Button
           variant="contained"
           onClick={onSubmit}
           color="primary"
+          disabled={disabled}
         >
-          Submit Location
+          {mode === 'create' ? 'Submit Location' : 'Save Changes'}
         </Button>
       </Box>
     </Stack>

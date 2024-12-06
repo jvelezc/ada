@@ -1,70 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Container,
-  Box,
-  IconButton,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Paper,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { LocationFormData } from '@/types';
-import LocationWizard from '@/components/LocationWizard';
+import { useEffect, useState } from 'react';
+import { Box, CircularProgress } from '@mui/material';
+import { LocationData } from '@/types';
 import { fetchLocationById, updateLocationById } from '@/lib/supabase-server';
+import EditLocationForm from '@/components/EditLocation/EditLocationForm';
 
-type Params = Promise<{ id: string }>;
-
-export default async function EditLocationPage({ params }: { params: Params }) {
-  const { id } = await params;
-
-  const router = useRouter();
-  const [formData, setFormData] = useState<Partial<LocationFormData>>({});
-  const [exitDialogOpen, setExitDialogOpen] = useState(false);
+export default function EditLocationPage({ params }: { params: { id: string } }) {
+  const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLocation = async () => {
+    const loadLocation = async () => {
       try {
-        const data = await fetchLocationById(id);
-        if (data) {
-          setFormData(data);
-        }
-      } catch (err) {
-        console.error('Error fetching location:', err);
-        setError('Failed to load location data');
+        const data = await fetchLocationById(params.id);
+        setLocation(data);
+      } catch (error) {
+        console.error('Error fetching location:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLocation();
-  }, [id]);
+    loadLocation();
+  }, [params.id]);
 
-  const handleSubmit = async (data: LocationFormData) => {
-    try {
-      await updateLocationById(id, data);
-      router.push('/admin');
-    } catch (err) {
-      console.error('Error updating location:', err);
-      setError('Failed to update location');
-    }
-  };
-
-  const handleClose = () => {
-    setExitDialogOpen(true);
-  };
-
-  if (loading) {
+  if (loading || !location) {
     return (
       <Box
         sx={{
@@ -81,60 +42,11 @@ export default async function EditLocationPage({ params }: { params: Params }) {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        <Paper
-          sx={{
-            p: 3,
-            mb: 3,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
-          <IconButton
-            onClick={() => setExitDialogOpen(true)}
-            sx={{ color: 'text.secondary' }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5">Edit Location</Typography>
-        </Paper>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        <LocationWizard
-          open={true}
-          onClose={handleClose}
-          onSubmit={handleSubmit}
-          initialData={formData}
-          mode="edit"
-        />
-      </Container>
-
-      <Dialog
-        open={exitDialogOpen}
-        onClose={() => setExitDialogOpen(false)}
-        PaperProps={{
-          sx: { borderRadius: 2 },
-        }}
-      >
-        <DialogTitle>Exit Edit Mode?</DialogTitle>
-        <DialogContent>
-          Are you sure you want to exit? All your changes will be lost.
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExitDialogOpen(false)}>Cancel</Button>
-          <Button onClick={() => router.push('/admin')} color="error">
-            Exit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    <EditLocationForm
+      initialData={location}
+      onSubmit={async (data) => {
+        await updateLocationById(params.id, data);
+      }}
+    />
   );
 }
