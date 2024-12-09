@@ -14,7 +14,7 @@ import {
   Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { LocationFormData, LocationData } from '@/types';
+import { BaseLocation, LocationData } from '@/types';
 import BasicInfoStep from './WizardSteps/BasicInfoStep';
 import AccessibilityStep from './WizardSteps/AccessibilityStep';
 import EntranceStep from './WizardSteps/EntranceStep';
@@ -23,7 +23,7 @@ import ReviewStep from './WizardSteps/ReviewStep';
 interface LocationWizardProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: LocationFormData) => Promise<void>;
+  onSubmit: (data: BaseLocation) => Promise<boolean>;
   initialData?: Partial<LocationData>;
   mode?: 'create' | 'edit';
 }
@@ -43,9 +43,9 @@ export default function LocationWizard({
   mode = 'create' 
 }: LocationWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [formData, setFormData] = useState<Partial<LocationFormData>>(initialData || {});
+  const [formData, setFormData] = useState<Partial<BaseLocation>>(initialData || {});
 
-  const handleNext = (stepData: Partial<LocationFormData>) => {
+  const handleNext = (stepData: Partial<BaseLocation>) => {
     setFormData(prev => ({ ...prev, ...stepData }));
     setActiveStep(prev => prev + 1);
   };
@@ -173,7 +173,7 @@ export default function LocationWizard({
               <ReviewStep
                 data={formData}
                 onBack={handleBack}
-                onSubmit={() => onSubmit(formData as LocationFormData)}
+                onSubmit={() => onSubmit(formData as BaseLocation)}
                 mode={mode}
               />
             )}

@@ -1,14 +1,20 @@
 'use client';
 
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton, Typography, Button } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 
 interface EditLocationHeaderProps {
   activeStep: number;
   onExit: () => void;
+  onManagePhotos: () => void;
 }
 
-export default function EditLocationHeader({ activeStep, onExit }: EditLocationHeaderProps) {
+export default function EditLocationHeader({ 
+  activeStep, 
+  onExit,
+  onManagePhotos
+}: EditLocationHeaderProps) {
   const steps = [
     { label: 'Basic Info', description: 'Location details' },
     { label: 'Accessibility', description: 'Overall accessibility' },
@@ -32,7 +38,8 @@ export default function EditLocationHeader({ activeStep, onExit }: EditLocationH
       >
         <ArrowBackIcon />
       </IconButton>
-      <Box>
+      
+      <Box sx={{ flex: 1 }}>
         <Typography variant="h5" gutterBottom>
           Edit Location
         </Typography>
@@ -40,6 +47,15 @@ export default function EditLocationHeader({ activeStep, onExit }: EditLocationH
           {steps[activeStep].description}
         </Typography>
       </Box>
+
+      <Button
+        startIcon={<PhotoLibraryIcon />}
+        onClick={onManagePhotos}
+        variant="outlined"
+        color="primary"
+      >
+        Manage Photos
+      </Button>
     </Box>
   );
 }

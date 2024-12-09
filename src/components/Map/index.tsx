@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Map, { Marker, Popup, ViewState } from 'react-map-gl';
 import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { LocationData } from '@/types';
@@ -76,6 +76,10 @@ export default function MapComponent() {
     }));
   }, []);
 
+  const handleSearch = useCallback((query: string) => {
+    // Search implementation
+  }, []);
+
   const handleFilterChange = useCallback((newFilters: string[]) => {
     setFilters(newFilters);
   }, []);
@@ -143,7 +147,7 @@ export default function MapComponent() {
       )}
 
       <MapControls
-        onSearch={() => {}}
+        onSearch={handleSearch}
         onLocationRequest={handleLocationRequest}
         onAddressSelect={handleAddressSelect}
         onFilterChange={handleFilterChange}

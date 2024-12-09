@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Map, { Marker, Popup, ViewState } from 'react-map-gl';
-import { Box, Paper, Typography, CircularProgress, Alert, Stack, Chip } from '@mui/material';
+import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { LocationData } from '@/types';
+import { fetchLocations } from '@/lib/supabase-server';
 import SearchBar from './SearchBar';
 import Legend from './Legend';
 import FilterPanel from './FilterPanel';
 import AddLocationButton from './AddLocationButton';
-import { LocationData } from '@/types';
-import { fetchLocations } from '@/lib/supabase-server';
+import LocationPopup from './Map/LocationPopup';
+import MapMarker from './Map/MapMarker';
+import { useMapControls } from '@/hooks/useMapControls';
+import { useLocationFilters } from '@/hooks/useLocationFilters';
 
-// Import mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const INITIAL_VIEW_STATE = {
@@ -23,10 +26,12 @@ const INITIAL_VIEW_STATE = {
 };
 
 export default function MapComponent() {
-  const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW_STATE);
+  const { viewState, setViewState, handleLocationRequest, handleAddressSelect } = useMapControls({
+    initialViewState: INITIAL_VIEW_STATE
+  });
+  const { filters, setFilters, filterLocations } = useLocationFilters();
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
-  const [filters, setFilters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,61 +53,11 @@ export default function MapComponent() {
     loadLocations();
   }, [loadLocations]);
 
-  const handleLocationRequest = useCallback(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setViewState(prev => ({
-            ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            zoom: 14,
-            transitionDuration: 1000,
-          }));
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setError('Failed to get your location. Please try again.');
-        }
-      );
-    }
+  const handleSearch = useCallback(() => {
+    // Search functionality will be implemented here
   }, []);
 
-  const handleAddressSelect = useCallback((address: string, lat: number, lng: number) => {
-    setViewState(prev => ({
-      ...prev,
-      latitude: lat,
-      longitude: lng,
-      zoom: 16,
-      transitionDuration: 1000,
-    }));
-  }, []);
-
-  const handleFilterChange = useCallback((newFilters: string[]) => {
-    setFilters(newFilters);
-  }, []);
-
-  const filteredLocations = locations.filter((location) => {
-    if (filters.length === 0) return true;
-    return filters.every((filter) => {
-      switch (filter) {
-        case 'high':
-          return location.accessibility_level === 'high';
-        case 'medium':
-          return location.accessibility_level === 'medium';
-        case 'low':
-          return location.accessibility_level === 'low';
-        case 'no-steps':
-          return !location.has_steps;
-        case 'restroom':
-          return location.has_restroom && location.is_restroom_accessible;
-        case 'service-animal':
-          return location.is_dog_friendly;
-        default:
-          return true;
-      }
-    });
-  });
+  const filteredLocations = filterLocations(locations);
 
   if (loading) {
     return (
@@ -144,13 +99,13 @@ export default function MapComponent() {
         </Alert>
       )}
 
-      <SearchBar 
-        onSearch={() => {}}
+      <SearchBar
+        onSearch={handleSearch}
         onLocationRequest={handleLocationRequest}
         onAddressSelect={handleAddressSelect}
       />
 
-      <FilterPanel onFilterChange={handleFilterChange} />
+      <FilterPanel onFilterChange={setFilters} />
 
       <Legend />
 
@@ -166,32 +121,18 @@ export default function MapComponent() {
             key={location.id}
             latitude={location.latitude}
             longitude={location.longitude}
-            onClick={(e) => {
-              e.originalEvent?.stopPropagation();
-              setViewState(prev => ({
-                ...prev,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                zoom: 16,
-                transitionDuration: 500,
-              }));
-              setSelectedLocation(location);
-            }}
           >
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                bgcolor: location.accessibility_level === 'high' ? '#4CAF50' :
-                        location.accessibility_level === 'medium' ? '#FFC107' : '#F44336',
-                borderRadius: '50%',
-                border: '3px solid white',
-                boxShadow: 2,
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'scale(1.2)',
-                },
+            <MapMarker
+              location={location}
+              onClick={() => {
+                setViewState(prev => ({
+                  ...prev,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  zoom: 16,
+                  transitionDuration: 500,
+                }));
+                setSelectedLocation(location);
               }}
             />
           </Marker>
@@ -204,54 +145,11 @@ export default function MapComponent() {
             onClose={() => setSelectedLocation(null)}
             closeButton={true}
             closeOnClick={false}
-            anchor="bottom"
+            anchor="top"
+            offset={[0, -20]}
             className="location-popup"
           >
-            <Paper sx={{ p: 3, maxWidth: 400, borderRadius: 2 }}>
-              <Stack spacing={2}>
-                <Typography variant="h6">
-                  {selectedLocation.name}
-                </Typography>
-
-                <Typography variant="body2" color="text.secondary">
-                  {selectedLocation.address}
-                  {selectedLocation.unit && ` (${selectedLocation.unit})`}
-                </Typography>
-
-                <Box>
-                  <Chip
-                    label={selectedLocation.accessibility_level?.toUpperCase()}
-                    color={
-                      selectedLocation.accessibility_level === 'high' ? 'success' :
-                      selectedLocation.accessibility_level === 'medium' ? 'warning' : 'error'
-                    }
-                    size="small"
-                    sx={{ mb: 1 }}
-                  />
-                  
-                  {selectedLocation.description && (
-                    <Typography variant="body2">
-                      {selectedLocation.description}
-                    </Typography>
-                  )}
-                </Box>
-
-                <Stack spacing={1}>
-                  {selectedLocation.has_steps === false && (
-                    <Typography variant="body2">✓ No steps at entrance</Typography>
-                  )}
-                  {selectedLocation.has_elevator && (
-                    <Typography variant="body2">✓ Has elevator</Typography>
-                  )}
-                  {selectedLocation.has_restroom && selectedLocation.is_restroom_accessible && (
-                    <Typography variant="body2">✓ Accessible restroom available</Typography>
-                  )}
-                  {selectedLocation.is_dog_friendly && (
-                    <Typography variant="body2">✓ Service animals welcome</Typography>
-                  )}
-                </Stack>
-              </Stack>
-            </Paper>
+            <LocationPopup location={selectedLocation} />
           </Popup>
         )}
       </Map>

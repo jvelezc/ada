@@ -2,8 +2,8 @@
 
 import { Box } from '@mui/material';
 import SearchBar from '../SearchBar';
-import FilterPanel from '../FilterPanel';
 import Legend from '../Legend';
+import FilterPanel from '../FilterPanel';
 import AddLocationButton from '../AddLocationButton';
 
 interface MapControlsProps {
@@ -26,8 +26,11 @@ export default function MapControls({
         onLocationRequest={onLocationRequest}
         onAddressSelect={onAddressSelect}
       />
+
       <FilterPanel onFilterChange={onFilterChange} />
+
       <Legend />
+
       <AddLocationButton />
     </>
   );

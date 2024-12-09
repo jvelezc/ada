@@ -1,18 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Paper, Alert, CircularProgress } from '@mui/material';
+import { Box, Paper, Alert, CircularProgress, Button, Dialog, DialogTitle, DialogContent } from '@mui/material';
 import { LocationData } from '@/types';
 import EditLocationHeader from './EditLocationHeader';
 import EditLocationStepper from './EditLocationStepper';
 import EditLocationContent from './EditLocationContent';
 import ExitDialog from './ExitDialog';
 import SuccessDialog from './SuccessDialog';
+import PhotoManager from '../LocationPhotos/PhotoManager';
 import { useRouter } from 'next/navigation';
 
 interface EditLocationFormProps {
   initialData: LocationData;
-  onSubmit: (data: LocationData) => Promise<void>;
+  onSubmit: (data: LocationData) => Promise<boolean>;
 }
 
 export default function EditLocationForm({ initialData, onSubmit }: EditLocationFormProps) {
@@ -20,6 +21,7 @@ export default function EditLocationForm({ initialData, onSubmit }: EditLocation
   const [formData, setFormData] = useState<Partial<LocationData>>(initialData);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -47,8 +49,10 @@ export default function EditLocationForm({ initialData, onSubmit }: EditLocation
     try {
       setSubmitting(true);
       setError(null);
-      await onSubmit(formData as LocationData);
-      setSuccessDialogOpen(true);
+      const success = await onSubmit(formData as LocationData);
+      if (success) {
+        setSuccessDialogOpen(true);
+      }
     } catch (err) {
       console.error('Error updating location:', err);
       setError('Failed to update location. Please try again.');
@@ -69,6 +73,7 @@ export default function EditLocationForm({ initialData, onSubmit }: EditLocation
         <EditLocationHeader
           activeStep={activeStep}
           onExit={handleExit}
+          onManagePhotos={() => setPhotoDialogOpen(true)}
         />
         <EditLocationStepper activeStep={activeStep} />
       </Paper>
@@ -116,6 +121,27 @@ export default function EditLocationForm({ initialData, onSubmit }: EditLocation
           router.push('/admin');
         }}
       />
+
+      <Dialog
+        open={photoDialogOpen}
+        onClose={() => setPhotoDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
+      >
+        <DialogTitle>Manage Location Photos</DialogTitle>
+        <DialogContent>
+          {initialData.id && (
+            <PhotoManager
+              locationId={initialData.id}
+              editable={true}
+              onClose={() => setPhotoDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

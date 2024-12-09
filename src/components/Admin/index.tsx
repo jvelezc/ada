@@ -9,16 +9,17 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { LocationData } from '@/types';
+import { LocationData, PendingLocation, ApprovedLocation } from '@/types';
 import { supabase } from '@/lib/supabase-client';
+import { approveLocation, rejectLocation } from '@/lib/location-approval-service';
 import LocationTable from './LocationTable';
 import LocationSearch from './LocationSearch';
 import LocationTabs from './LocationTabs';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 
 export default function AdminPanel() {
-  const [pendingLocations, setPendingLocations] = useState<LocationData[]>([]);
-  const [approvedLocations, setApprovedLocations] = useState<LocationData[]>([]);
+  const [pendingLocations, setPendingLocations] = useState<PendingLocation[]>([]);
+  const [approvedLocations, setApprovedLocations] = useState<ApprovedLocation[]>([]);
   const [filteredLocations, setFilteredLocations] = useState<LocationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function AdminPanel() {
     try {
       setLoading(true);
       setError(null);
-
+  
       const [pendingResult, approvedResult] = await Promise.all([
         supabase
           .from('pending_locations')
@@ -39,17 +40,36 @@ export default function AdminPanel() {
           .order('submitted_at', { ascending: false }),
         supabase
           .from('locations')
-          .select('*')
+          .select(`
+            *,
+            location_photos (
+              id,
+              url,
+              storage_path
+            )
+          `)
           .eq('status', 'approved')
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }),
       ]);
-
+  
       if (pendingResult.error) throw pendingResult.error;
       if (approvedResult.error) throw approvedResult.error;
-
+  
+      // Define the type of location_photos
+      interface LocationPhoto {
+        id: number;
+        url: string;
+        storage_path: string;
+      }
+  
       setPendingLocations(pendingResult.data || []);
-      setApprovedLocations(approvedResult.data || []);
-      setFilteredLocations(activeTab === 0 ? pendingResult.data || [] : approvedResult.data || []);
+      setApprovedLocations(
+        approvedResult.data.map((location) => ({
+          ...location,
+          photos: (location.location_photos as LocationPhoto[])?.map((photo) => photo.url) || [],
+        }))
+      );
+      setFilteredLocations(activeTab === 0 ? pendingResult.data : approvedResult.data);
     } catch (err) {
       console.error('Error fetching locations:', err);
       setError('Failed to fetch locations');
@@ -57,6 +77,7 @@ export default function AdminPanel() {
       setLoading(false);
     }
   }, [activeTab]);
+  
 
   useEffect(() => {
     fetchLocations();
@@ -109,14 +130,7 @@ export default function AdminPanel() {
 
   if (loading) {
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '100vh',
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <CircularProgress />
       </Box>
     );
@@ -154,43 +168,25 @@ export default function AdminPanel() {
         <LocationTable
           locations={filteredLocations}
           onEdit={handleEdit}
-          onApprove={async (location) => {
+          onApprove={async (location: PendingLocation) => {
             try {
-              const { error: deleteError } = await supabase
-                .from('pending_locations')
-                .delete()
-                .eq('id', location.id);
-
-              if (deleteError) throw deleteError;
-
-              const { error: insertError } = await supabase
-                .from('locations')
-                .insert([{ ...location, status: 'approved' }]);
-
-              if (insertError) throw insertError;
-
+              await approveLocation(location);
               await fetchLocations();
             } catch (err) {
               console.error('Error approving location:', err);
               setError('Failed to approve location');
             }
           }}
-          onReject={async (id) => {
+          onReject={async (id: number) => {
             try {
-              const { error } = await supabase
-                .from('pending_locations')
-                .delete()
-                .eq('id', id);
-
-              if (error) throw error;
-
+              await rejectLocation(id, 'Location rejected by admin');
               await fetchLocations();
             } catch (err) {
               console.error('Error rejecting location:', err);
               setError('Failed to reject location');
             }
           }}
-          onDelete={(location) => setLocationToDelete(location)}
+          onDelete={setLocationToDelete}
           showApproveReject={activeTab === 0}
         />
       </Paper>

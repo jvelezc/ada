@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Alert } from '@mui/material';
-import { LocationData } from '@/types';
+import { Box, CircularProgress, Alert } from '@mui/material';
+import { LocationData, BaseLocation } from '@/types';
+import { updateLocationById } from '@/lib/supabase-server';
 import LocationWizard from '@/components/LocationWizard';
-import { supabase } from '@/lib/supabase-client';
 
 interface EditLocationClientProps {
   initialData: LocationData;
@@ -16,19 +16,16 @@ export default function EditLocationClient({ initialData }: EditLocationClientPr
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
 
-  const handleSubmit = async (data: LocationData) => {
+  const handleSubmit = async (data: BaseLocation) => {
     try {
-      const { error } = await supabase
-        .from('locations')
-        .update(data)
-        .eq('id', initialData.id);
-
-      if (error) throw error;
+      await updateLocationById(initialData.id!.toString(), data);
       setOpen(false);
       router.push('/admin');
+      return true;
     } catch (err) {
       console.error('Error updating location:', err);
       setError('Failed to update location');
+      return false;
     }
   };
 
